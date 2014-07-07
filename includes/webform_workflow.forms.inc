@@ -1,43 +1,33 @@
 <?php
 /**
  * @file
- * Admin related configuration forms 
+ * Forms for the Webform Workflow module.
  */
 
 /**
- * Implements hook_form_FORM_ID_alter().
- *
- * Adds in the workflow configuration fieldset.
+ * Configuration form.
  */
-function webform_workflow_form_webform_configure_form_alter(&$form, &$form_state, $form_id) {
+function webform_workflow_config_form($form, &$form_state, $node) {
 
-  form_load_include($form_state, 'inc', 'webform_workflow', 'webform_workflow.admin');
+  form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
 
-  $nid = $form['#node']->nid;
-  $form['workflow'] = array(
-    '#type' => 'fieldset',
-    '#title' => 'Workflow',
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-    '#weight' => -109,
-    '#tree' => TRUE,
-  );
+  $form['#node'] = $node;
+  $form_state['node'] = $node;
 
-  $workflow_enabled = webform_workflow_is_enabled($nid);
-  $form['workflow']['enable_workflow'] = array(
+  $form['enable_workflow'] = array(
     '#type' => 'checkbox',
     '#title' => 'Enable workflow',
-    '#default_value' => $workflow_enabled,
+    '#default_value' => webform_workflow_is_enabled($node),
   );
 
-  $form['workflow']['states'] = array(
+  $form['states'] = array(
     '#type' => 'fieldset',
     '#prefix' => '<div id="states-fieldset-wrapper">',
     '#suffix' => '</div>',
     '#theme' => 'webform_workflow_admin_form',
   );
 
-  $items = webform_workflow_get_available_states($nid);
+  $items = webform_workflow_get_available_states($node);
   if (!isset($form_state['num_states'])) {
     $form_state['num_states'] = (count($items) + 1);
   }
@@ -66,7 +56,7 @@ function webform_workflow_form_webform_configure_form_alter(&$form, &$form_state
       }
     }
 
-    $form['workflow']['states']['items'][] = array(
+    $form['states']['items'][] = array(
       'wsid' => array(
         '#type' => 'hidden',
         '#value' => $item['wsid'],
@@ -96,7 +86,7 @@ function webform_workflow_form_webform_configure_form_alter(&$form, &$form_state
     );
   }
 
-  $form['workflow']['states']['add_another'] = array(
+  $form['states']['add_another'] = array(
     '#type' => 'submit',
     '#value' => t('Add one more'),
     '#submit' => array('webform_workflow_add_another_submit'),
@@ -109,21 +99,21 @@ function webform_workflow_form_webform_configure_form_alter(&$form, &$form_state
     ),
   );
 
-  $workflow = webform_workflow_load($nid);
+  $workflow = isset($node->webform_workflow) ? $node->webform_workflow : FALSE;
   $emails = $workflow ? $workflow->data['emails'] : webform_workflow_get_default_email();
-  $form['workflow']['emails'] = array(
+  $form['emails'] = array(
     '#type' => 'fieldset',
     '#title' => 'State Transition Notification Emails',
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
   );
-  $form['workflow']['emails']['subject'] = array(
+  $form['emails']['subject'] = array(
     '#type' => 'textfield',
     '#title' => 'Message Subject',
     '#default_value' => $emails['subject'],
     '#size' => 80,
   );
-  $form['workflow']['emails']['body'] = array(
+  $form['emails']['body'] = array(
     '#type' => 'textarea',
     '#title' => 'Message Body',
     '#default_value' => $emails['body'],
@@ -132,8 +122,13 @@ function webform_workflow_form_webform_configure_form_alter(&$form, &$form_state
     '#description' => theme('webform_token_help', array('groups' => array('node', 'submission'))),
   );
 
-  $form['#validate'][] = 'webform_workflow_config_validate';
-  $form['#submit'][] = 'webform_workflow_config_submit';
+  $form['buttons'] = array('#type' => 'actions');
+  $form['buttons']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
 }
 
 /**
@@ -161,65 +156,6 @@ function webform_workflow_config_validate($form, &$form_state) {
       }
     }
   }
-}
-
-/**
- * Get user uids or emails from form entry text.
- *
- * Sets $user_errors for any invalid users
- * Returns an array of valid uid (numeric) or emails (string)
- */
-function webform_workflow_get_users($notify_users_text, &$user_errors = NULL) {
-  $notify_users_text = trim($notify_users_text);
-  $users = preg_split('/[\s;,]+/', $notify_users_text);
-  $valid_users = array();
-  $user_errors = array();
-  foreach ($users as $user_text) {
-    if (valid_email_address($user_text)) {
-      $valid_users[] = $user_text;
-    }
-    elseif ($user = user_load_by_name($user_text)) {
-      $valid_users[] = $user->uid;
-    }
-    else {
-      $user_errors[] = $user_text;
-    }
-  }
-  return $valid_users;
-}
-
-/**
- * Get form entry text from array of user uids or emails.
- */
-function webform_workflow_get_user_text($notify_users) {
-  $users = array();
-  foreach ($notify_users as $u) {
-    if (is_numeric($u)) {
-      $user = user_load($u);
-      $users[] = $user->name;
-    }
-    else {
-      $users[] = $u;
-    }
-  }
-  return implode("\n", $users);
-}
-
-/**
- * Get array of emails from array of user uids or emails.
- */
-function webform_workflow_get_user_emails($notify_users) {
-  $emails = array();
-  foreach ($notify_users as $u) {
-    if (is_numeric($u)) {
-      $user = user_load($u);
-      $emails[] = $user->mail;
-    }
-    else {
-      $emails[] = $u;
-    }
-  }
-  return $emails;
 }
 
 /**
@@ -266,61 +202,43 @@ function webform_workflow_config_submit($form, $form_state) {
 }
 
 /**
- * Theme function for the state table.
+ * Get user uids or emails from form entry text.
+ *
+ * Sets $user_errors for any invalid users
+ * Returns an array of valid uid (numeric) or emails (string)
  */
-function theme_webform_workflow_admin_form($variables) {
-  $form = $variables['element'];
-
-  $rows = array();
-  foreach (element_children($form['items']) as $key) {
-    $rows[] = array(
-      'data' => array(
-        drupal_render($form['items'][$key]['label']),
-        drupal_render($form['items'][$key]['view_permissions']),
-        drupal_render($form['items'][$key]['edit_permissions']),
-        drupal_render($form['items'][$key]['from_permissions']),
-        drupal_render($form['items'][$key]['to_permissions']),
-        drupal_render($form['items'][$key]['notify_users']),
-        drupal_render($form['items'][$key]['weight']),
-      ),
-      'class' => array('draggable'),
-    );
+function webform_workflow_get_users($notify_users_text, &$user_errors = NULL) {
+  $notify_users_text = trim($notify_users_text);
+  $users = preg_split('/[\s;,]+/', $notify_users_text);
+  $valid_users = array();
+  $user_errors = array();
+  foreach ($users as $user_text) {
+    if (valid_email_address($user_text)) {
+      $valid_users[] = $user_text;
+    }
+    elseif ($user = user_load_by_name($user_text)) {
+      $valid_users[] = $user->uid;
+    }
+    else {
+      $user_errors[] = $user_text;
+    }
   }
-
-  $table_id = 'webform-workflow-states';
-
-  $header = array(
-    t('State'),
-    t('View Permissions'),
-    t('Edit Permissions'),
-    t('Transition From'),
-    t('Transition To'),
-    t('Notify users/emails'),
-    t('Weight'),
-  );
-
-  $output = theme('table', array(
-    'header' => $header,
-    'rows' => $rows,
-    'attributes' => array('id' => $table_id),
-  ));
-  $output .= drupal_render_children($form);
-
-  drupal_add_tabledrag($table_id, 'order', 'sibling', 'state-item-weight');
-  return $output;
+  return $valid_users;
 }
 
 /**
- * Ajax callback for the add another state button.
+ * Get array of emails from array of user uids or emails.
  */
-function webform_workflow_add_more_callback($form, $form_state) {
-  return $form['workflow']['states'];
-}
-
-/**
- * Submission callback for the add another state button.
- */
-function webform_workflow_add_another_submit($form, &$form_state) {
-  $form_state['num_states']++;
-  $form_state['rebuild'] = TRUE;
+function webform_workflow_get_user_emails($notify_users) {
+  $emails = array();
+  foreach ($notify_users as $u) {
+    if (is_numeric($u)) {
+      $user = user_load($u);
+      $emails[] = $user->mail;
+    }
+    else {
+      $emails[] = $u;
+    }
+  }
+  return $emails;
 }

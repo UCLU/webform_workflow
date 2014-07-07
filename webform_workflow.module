@@ -10,6 +10,16 @@ define('WEBFORM_WORKFLOW_ORIGINAL_AUTHOR', -1);
  * Implements hook_menu().
  */
 function webform_workflow_menu() {
+  $items['node/%webform_menu/webform/workflow'] = array(
+    'title' => 'Workflow',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_workflow_config_form', 1),
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'file' => 'includes/webform_workflow.forms.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 5,
+  );
   $items['node/%webform_menu/submission/%webform_menu_submission/state/%/confirmation'] = array(
     'title' => 'Workflow State Change - Add message',
     'page callback' => 'webform_workflow_confirmation',
@@ -29,7 +39,7 @@ function webform_workflow_theme($existing, $type, $theme, $path) {
   return array(
     'webform_workflow_admin_form' => array(
       'render element' => 'element',
-      'file' => 'webform_workflow.admin.inc',
+      'file' => 'includes/webform_workflow.theme.inc',
     ),
   );
 }
@@ -39,13 +49,30 @@ function webform_workflow_theme($existing, $type, $theme, $path) {
  */
 
 /**
+ * Get form entry text from array of user uids or emails.
+ */
+function webform_workflow_get_user_text($notify_users) {
+  $users = array();
+  foreach ($notify_users as $u) {
+    if (is_numeric($u)) {
+      $user = user_load($u);
+      $users[] = $user->name;
+    }
+    else {
+      $users[] = $u;
+    }
+  }
+  return implode("\n", $users);
+}
+
+/**
  * Implements hook_webform_submission_render_alter().
  *
  * Alter the display of a webform.
  */
 function webform_workflow_webform_submission_render_alter(&$renderable) {
   $node = $renderable['#node'];
-  if (webform_workflow_is_enabled($node->nid)) {
+  if (webform_workflow_is_enabled($node)) {
     $submission = $renderable['#submission'];
     $state = $submission->webform_workflow_state;
     $renderable['workflow'] = array(
@@ -98,7 +125,8 @@ function webform_workflow_webform_submission_render_alter(&$renderable) {
  */
 function webform_workflow_webform_submission_load(&$submissions) {
   foreach ($submissions as $sid => $submission) {
-    if (webform_workflow_is_enabled($submission->nid)) {
+    $node = node_load($submission->nid);
+    if (webform_workflow_is_enabled($node)) {
       $error = FALSE;
       if ($wsid = webform_workflow_get_submission_state($sid)) {
         $state = webform_workflow_get_state($wsid);
@@ -127,7 +155,7 @@ function webform_workflow_webform_submission_load(&$submissions) {
 function webform_workflow_webform_submission_actions($node, $submission) {
   $actions = array();
 
-  if (webform_workflow_is_enabled($node->nid) && webform_submission_access($node, $submission, 'edit')) {
+  if (webform_workflow_is_enabled($node) && webform_submission_access($node, $submission, 'edit')) {
     global $user;
     $transition_from_current = FALSE;
 
@@ -152,7 +180,7 @@ function webform_workflow_webform_submission_actions($node, $submission) {
        * we have to get all the states this user has permission to transition TO.
        */
 
-      $available_states = webform_workflow_get_available_states($submission->nid);
+      $available_states = webform_workflow_get_available_states($node);
 
       foreach ($available_states as $state) {
         if (in_array($rid, $state['to_permissions'])) {
@@ -314,7 +342,7 @@ function webform_workflow_log_get($sid) {
  * Insert a submission record for webform and state.
  */
 function webform_workflow_webform_submission_insert($node, $submission) {
-  if (webform_workflow_is_enabled($node->nid)) {
+  if (webform_workflow_is_enabled($node)) {
     $state = webform_workflow_get_next_state($submission);
     $record = array(
       'nid' => $node->nid,
@@ -332,7 +360,7 @@ function webform_workflow_webform_submission_insert($node, $submission) {
  * Update the webform submission record.
  */
 function webform_workflow_webform_submission_update($node, $submission) {
-  if (webform_workflow_is_enabled($node->nid) && $submission->webform_workflow_state) {
+  if (webform_workflow_is_enabled($node) && $submission->webform_workflow_state) {
     webform_workflow_write_submission_state($submission);
   }
 }
@@ -355,7 +383,8 @@ function webform_workflow_webform_submission_delete($node, $submission) {
  * Get the next workflow state.
  */
 function webform_workflow_get_next_state($submission, $reversed = FALSE) {
-  $states = webform_workflow_get_available_states($submission->nid);
+  $node = node_load($submission->nid);
+  $states = webform_workflow_get_available_states($node);
   if ($reversed) {
     $states = array_reverse($states, TRUE);
   }
@@ -381,7 +410,7 @@ function webform_workflow_get_next_state($submission, $reversed = FALSE) {
  * Put our access check into the webform.
  */
 function webform_workflow_webform_submission_access($node, $submission, $op, $account) {
-  if (webform_workflow_is_enabled($node->nid)) {
+  if (webform_workflow_is_enabled($node)) {
     if (!isset($submission->webform_workflow_state)) {
       return FALSE;
     }
@@ -408,23 +437,33 @@ function webform_workflow_webform_submission_access($node, $submission, $op, $ac
 }
 
 /**
- * Load workflow data.
+ * Implements hook_node_load().
  */
-function webform_workflow_load($nid) {
-  $query = db_select('webform_workflow', 'ww')
-    ->fields('ww', array('workflow', 'data'))
-    ->condition('nid', $nid)
-    ->execute();
-
-  if ($result = $query->fetch()) {
-    $result->data = unserialize($result->data);
-    if (empty($result->data['emails'])) {
-      $result->data['emails'] = webform_workflow_get_default_email();
-    }
-    return $result;
+function webform_workflow_node_load($nodes, $types) {
+  $webform_types = webform_node_types();
+  if (count(array_intersect($types, $webform_types)) == 0) {
+    return;
   }
 
-  return FALSE;
+  // Load workflow data.
+  $result = db_select('webform_workflow', 'ww')
+    ->fields('ww', array('nid', 'workflow', 'data'))
+    ->condition('nid', array_keys($nodes), 'IN')
+    ->execute()
+    ->fetchAllAssoc('nid', PDO::FETCH_OBJ);
+
+  foreach ($result as $nid => $workflow) {
+    if (empty($workflow->data)) {
+      $workflow->data = array();
+    }
+    else {
+      $workflow->data = unserialize($workflow->data);
+    }
+    if (empty($workflow->data['emails'])) {
+      $workflow->data['emails'] = webform_workflow_get_default_email();
+    }
+    $nodes[$nid]->webform_workflow = $workflow;
+  }
 }
 
 /**
@@ -442,13 +481,13 @@ function webform_workflow_get_default_email() {
 
 /**
  * Check if workflow has been enabled for the current webform.
+ *
+ * @param object $node
+ *
+ * @return bool
  */
-function webform_workflow_is_enabled($nid) {
-  if ($result = webform_workflow_load($nid)) {
-    return (bool)$result->workflow;
-  }
-
-  return FALSE;
+function webform_workflow_is_enabled($node) {
+  return !empty($node->webform_workflow);
 }
 
 
@@ -458,10 +497,10 @@ function webform_workflow_is_enabled($nid) {
  * @param int $nid
  *   The node id of the webform.
  */
-function webform_workflow_get_available_states($nid) {
+function webform_workflow_get_available_states($node) {
   $query = db_select('webform_workflow_states', 'wws')
     ->fields('wws', array())
-    ->condition('wws.nid', $nid)
+    ->condition('wws.nid', $node->nid)
     ->orderBy('weight', 'asc')
     ->execute();
 
@@ -471,6 +510,21 @@ function webform_workflow_get_available_states($nid) {
   }
 
   return $states;
+}
+
+/**
+ * Ajax callback for the add another state button.
+ */
+function webform_workflow_add_more_callback($form, $form_state) {
+  return $form['states'];
+}
+
+/**
+ * Submission callback for the add another state button.
+ */
+function webform_workflow_add_another_submit($form, &$form_state) {
+  $form_state['num_states']++;
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
@@ -590,7 +644,7 @@ function webform_workflow_write_state($nid, $state) {
 /**
  * Takes the raw database output of a state and normalizes it.
  *
- * This is for internal use only, abstracts the raw database columns away from 
+ * This is for internal use only, abstracts the raw database columns away from
  * the associative array we manipulate.
  *
  * @param array $state
