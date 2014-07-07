@@ -1,0 +1,670 @@
+<?php
+/**
+ * @file
+ * A simple workflow module for webforms.
+ */
+
+define('WEBFORM_WORKFLOW_ORIGINAL_AUTHOR', -1);
+
+/**
+ * Implements hook_menu().
+ */
+function webform_workflow_menu() {
+  $items['node/%webform_menu/submission/%webform_menu_submission/state/%/confirmation'] = array(
+    'title' => 'Workflow State Change - Add message',
+    'page callback' => 'webform_workflow_confirmation',
+    'page arguments' => array(1, 3, 5),
+    'access callback' => 'webform_submission_access',
+    'access arguments' => array(1, 3, 'edit'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function webform_workflow_theme($existing, $type, $theme, $path) {
+  return array(
+    'webform_workflow_admin_form' => array(
+      'render element' => 'element',
+      'file' => 'webform_workflow.admin.inc',
+    ),
+  );
+}
+
+/**
+ * For webform API see: http://drupalcontrib.org/api/drupal/contributions%21webform%21webform.api.php/7
+ */
+
+/**
+ * Implements hook_webform_submission_render_alter().
+ *
+ * Alter the display of a webform.
+ */
+function webform_workflow_webform_submission_render_alter(&$renderable) {
+  $node = $renderable['#node'];
+  if (webform_workflow_is_enabled($node->nid)) {
+    $submission = $renderable['#submission'];
+    $state = $submission->webform_workflow_state;
+    $renderable['workflow'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Workflow',
+      '#weight' => -1,
+    );
+
+    $label = (isset($state['label'])) ? $state['label'] : 'Unknown';
+
+    $renderable['workflow']['state'] = array(
+      '#markup' => "Current state: " . $label,
+    );
+    $renderable['workflow']['log'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Transition Log',
+    );
+
+    $items = array();
+    foreach (webform_workflow_log_get($submission->sid) as $log) {
+      $user = user_load($log->uid);
+      $user_name = ($user) ? $user->name : "Unknown user";
+      $message = ($log->message) ? $log->message . '.' : '';
+      $from_state = webform_workflow_get_state($log->wsid_from);
+      $from_label = ($from_state) ? $from_state['label'] : 'Unknown';
+      $to_state = webform_workflow_get_state($log->wsid_to);
+      $to_label = ($to_state) ? $to_state['label'] : 'Unknown';
+      $timestamp = $log->timestamp;
+      $date = DateTime::createFromFormat('U', $timestamp);
+
+      $items[] = t("@date Transition from <strong>@from</strong> to <strong>@to</strong> by @user. @message", array(
+        '@date' => $date->format('d/m/Y H:i'),
+        '@from' => $from_label,
+        '@to' => $to_label,
+        '@user' => $user_name,
+        '@message' => $message,
+      ));
+    }
+
+    $renderable['workflow']['log']['items'] = array(
+      '#markup' => theme('item_list', array('items' => $items)),
+    );
+  }
+}
+
+/**
+ * Implements hook_webform_submission_load().
+ *
+ * Respond to the loading of Webform submissions.
+ */
+function webform_workflow_webform_submission_load(&$submissions) {
+  foreach ($submissions as $sid => $submission) {
+    if (webform_workflow_is_enabled($submission->nid)) {
+      $error = FALSE;
+      if ($wsid = webform_workflow_get_submission_state($sid)) {
+        $state = webform_workflow_get_state($wsid);
+        if ($state) {
+          $submissions[$sid]->webform_workflow_state = $state;
+        }
+        else {
+          $error = TRUE;
+        }
+      }
+      else {
+        $error = TRUE;
+      }
+
+      if ($error) {
+        drupal_set_message(t("The submission was in an invalid workflow state (WSID: @wsid). If you click approve/reject it will default back to the first state in the workflow.", array("@wsid" => $wsid)), "error");
+        $submissions[$sid]->webform_workflow_state = array();
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_webform_submission_actions().
+ */
+function webform_workflow_webform_submission_actions($node, $submission) {
+  $actions = array();
+
+  if (webform_workflow_is_enabled($node->nid) && webform_submission_access($node, $submission, 'edit')) {
+    global $user;
+    $transition_from_current = FALSE;
+
+    /*
+     * Get the current workflow state of the node, and workout
+     * whether the user can transition FROM this state. If they can't
+     * we don't output any links at all.
+     */
+    $current_state = $submission->webform_workflow_state;
+
+    foreach ($user->roles as $rid => $role) {
+      if (in_array($rid, $current_state['from_permissions'])) {
+        $transition_from_current = TRUE;
+        break;
+      }
+    }
+
+    if ($transition_from_current) {
+
+      /*
+       * User can transition from the current workflow state so now
+       * we have to get all the states this user has permission to transition TO.
+       */
+
+      $available_states = webform_workflow_get_available_states($submission->nid);
+
+      foreach ($available_states as $state) {
+        if (in_array($rid, $state['to_permissions'])) {
+
+          // only output a link if we're not in that state already - we can't transition to the same state we're already in!
+          if ($current_state['wsid'] != $state['wsid']) {
+            $action = 'workflow_' . strtolower($state['label']);
+            $actions[$action] = array(
+              'title' => t($state['label']),
+              'href' => 'node/' . $node->nid . '/submission/' . $submission->sid . '/state/' . $state['wsid'] . '/confirmation',
+            );
+          }
+
+        }
+      }
+    }
+  };
+
+  return $actions;
+}
+
+/**
+ * State change confirmation page form - allows user to add
+ * comments on the transition
+ */
+function webform_workflow_confirmation($node, $submission, $next_state_id) {
+
+  $output = '';
+
+  $form = drupal_get_form('webform_workflow_confirmation_form', $node, $submission, $next_state_id);
+  $output .= render($form);
+
+  return $output;
+
+}
+
+/**
+ * State change confirmation page form - allows user to add
+ * comments on the transition
+ */
+function webform_workflow_confirmation_form($form, &$form_state, $node, $submission, $next_state_id) {
+
+  $form['message'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Comment on this state change'),
+    '#required' => TRUE,
+  );
+
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#title' => t('Comment on this state change'),
+    '#value' => t('Make this change'),
+  );
+
+  return $form;
+
+}
+
+function webform_workflow_confirmation_form_submit($form, &$form_state){
+
+  if ($form_state['build_info']['args']
+    && isset($form_state['build_info']['args'][0])
+    && isset($form_state['build_info']['args'][1])
+    && isset($form_state['build_info']['args'][2])) {
+
+    $node = $form_state['build_info']['args'][0];
+    $submission = $form_state['build_info']['args'][1];
+    $next_state_id = $form_state['build_info']['args'][2];
+
+    $message = $form_state['values']['message'];
+
+    webform_workflow_transition($node, $submission, $next_state_id, $message);
+
+  }
+  else {
+    drupal_set_message(t('Unable to make transition'), 'error');
+    watchdog('webform_workflow', t('Failed to make workflow state transition: missing confirmation form arguments'), WATCHDOG_ERROR);
+  }
+
+}
+
+/**
+ * Move the Submission into the next workflow state callback
+ *
+ * Transition the workflow on to the next state if possible.
+ */
+function webform_workflow_transition($node, $submission, $next_state_id, $message = NULL) {
+
+  $next_state = webform_workflow_get_state($next_state_id);
+
+  if ($next_state) {
+    $current_state = $submission->webform_workflow_state;
+
+    // check to make sure we're not trying to move to the same state as the current one
+    if ($current_state['wsid'] != $next_state_id) {
+      $current_label = $current_state['label'];
+      $next_label = $next_state['label'];
+      $submission->webform_workflow_state = $next_state;
+      webform_submission_update($node, $submission);
+      webform_workflow_log_transition($submission, $current_state, $next_state, $message);
+      drupal_set_message(t("Transitioned submission from @current_state to @next_state",
+        array('@current_state' => $current_label, '@next_state' => $next_label)));
+
+      webform_workflow_notify_users($submission);
+
+      if (module_exists('rules')) {
+        rules_invoke_event('webform_workflow_transition', $node, $current_state, $next_state);
+      }
+    }
+    else {
+      drupal_set_message(t("Submission is already in the @state state.", array('@state' => $current_state['label'])), "error");
+    }
+
+  }
+
+  drupal_goto("node/{$node->nid}/submission/{$submission->sid}");
+}
+
+/**
+ * Log the transition to a log table.
+ */
+function webform_workflow_log_transition($submission, $from, $to, $message = NULL) {
+  global $user;
+
+  $record = array(
+    'nid' => $submission->nid,
+    'sid' => $submission->sid,
+    'uid' => $user->uid,
+    'wsid_from' => $from['wsid'],
+    'wsid_to' => $to['wsid'],
+    'message' => $message,
+    'timestamp' => REQUEST_TIME,
+  );
+
+  drupal_write_record('webform_workflow_log', $record);
+}
+
+
+/**
+ * Get the transitions from the log table.
+ */
+function webform_workflow_log_get($sid) {
+  $query = db_select('webform_workflow_log', 'wwl')
+    ->fields('wwl')
+    ->condition('sid', $sid)
+    ->execute();
+
+  if ($result = $query->fetchAllAssoc('id')) {
+    return $result;
+  }
+
+  return array();
+}
+
+/**
+ * Implements hook_webform_submission_insert().
+ *
+ * Insert a submission record for webform and state.
+ */
+function webform_workflow_webform_submission_insert($node, $submission) {
+  if (webform_workflow_is_enabled($node->nid)) {
+    $state = webform_workflow_get_next_state($submission);
+    $record = array(
+      'nid' => $node->nid,
+      'sid' => $submission->sid,
+      'wsid' => $state['wsid'],
+    );
+
+    drupal_write_record('webform_workflow_submissions', $record);
+  }
+}
+
+/**
+ * Implements hook_webform_submission_update().
+ *
+ * Update the webform submission record.
+ */
+function webform_workflow_webform_submission_update($node, $submission) {
+  if (webform_workflow_is_enabled($node->nid) && $submission->webform_workflow_state) {
+    webform_workflow_write_submission_state($submission);
+  }
+}
+
+/**
+ * Implements hook_webform_submission_delete().
+ *
+ * Delete the submission record.
+ */
+function webform_workflow_webform_submission_delete($node, $submission) {
+  // delete all submission data, even if workflow is no longer enabled
+  webform_workflow_delete_submission_state($submission->sid);
+
+  db_delete('webform_workflow_log')
+    ->condition('sid', $submission->sid)
+    ->execute();
+}
+
+/**
+ * Get the next workflow state.
+ */
+function webform_workflow_get_next_state($submission, $reversed = FALSE) {
+  $states = webform_workflow_get_available_states($submission->nid);
+  if ($reversed) {
+    $states = array_reverse($states, TRUE);
+  }
+  if (!isset($submission->webform_workflow_state)) {
+    return reset($states);
+  }
+  else {
+    $wsid = $submission->webform_workflow_state['wsid'];
+    // Don't even think about using array_shift in a foreach loop!
+    // http://us3.php.net/manual/en/function.array-shift.php:
+    // "All numerical array keys will be modified to start counting from zero..."
+    do {
+      $state = array_shift($states);
+    } while ($state && $state['wsid'] != $wsid);
+  }
+
+  return array_shift($states);
+}
+
+/**
+ * Implements hook_webform_submission_access().
+ *
+ * Put our access check into the webform.
+ */
+function webform_workflow_webform_submission_access($node, $submission, $op, $account) {
+  if (webform_workflow_is_enabled($node->nid)) {
+    if (!isset($submission->webform_workflow_state)) {
+      return FALSE;
+    }
+    $state = $submission->webform_workflow_state;
+    if (!isset($state[$op . '_permissions'])) {
+      return FALSE;
+    }
+
+    $roles = array_keys($account->roles);
+
+    // If we are the original author, add to our role list to flag this.
+    if ($submission->uid == $account->uid) {
+      $roles[] = WEBFORM_WORKFLOW_ORIGINAL_AUTHOR;
+    }
+
+    foreach ($roles as $rid) {
+      if (in_array($rid, $state[$op . '_permissions'])) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+}
+
+/**
+ * Load workflow data.
+ */
+function webform_workflow_load($nid) {
+  $query = db_select('webform_workflow', 'ww')
+    ->fields('ww', array('workflow', 'data'))
+    ->condition('nid', $nid)
+    ->execute();
+
+  if ($result = $query->fetch()) {
+    $result->data = unserialize($result->data);
+    if (empty($result->data['emails'])) {
+      $result->data['emails'] = webform_workflow_get_default_email();
+    }
+    return $result;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Get default email content for a workflow state change notification.
+ *
+ * @return array
+ *   An array containing the keys 'subject' and 'body'.
+ */
+function webform_workflow_get_default_email() {
+  return array(
+    'subject' => t('The form [node:title] has changed state'),
+    'body' => "Webform: [node:title]\n[submission:url]",
+  );
+}
+
+/**
+ * Check if workflow has been enabled for the current webform.
+ */
+function webform_workflow_is_enabled($nid) {
+  if ($result = webform_workflow_load($nid)) {
+    return (bool)$result->workflow;
+  }
+
+  return FALSE;
+}
+
+
+/**
+ * Get all states attached to a webform.
+ *
+ * @param int $nid
+ *   The node id of the webform.
+ */
+function webform_workflow_get_available_states($nid) {
+  $query = db_select('webform_workflow_states', 'wws')
+    ->fields('wws', array())
+    ->condition('wws.nid', $nid)
+    ->orderBy('weight', 'asc')
+    ->execute();
+
+  $states = array();
+  foreach ($query->fetchAllAssoc('wsid', PDO::FETCH_ASSOC) as $key => $state) {
+    $states[$key] = webform_workflow_normalize_state($state);
+  }
+
+  return $states;
+}
+
+/**
+ * Get the currently assigned workflow state to a submission.
+ */
+function webform_workflow_get_submission_state($sid) {
+  $query = db_select('webform_workflow_submissions', 'wws')
+    ->fields('wws', array())
+    ->condition('wws.sid', $sid)
+    ->execute();
+
+  if ($result = $query->fetch()) {
+    return $result->wsid;
+  }
+
+  return NULL;
+}
+
+/**
+ * Delete a submission state from the database.
+ *
+ * @param int $sid
+ *   The workflow state id to delete.
+ */
+function webform_workflow_delete_submission_state($sid) {
+  return db_delete('webform_workflow_submissions')
+    ->condition('sid', $sid)
+    ->execute();
+}
+
+/**
+ * Write submission state to the database.
+ *
+ * @param object $submission
+ *   The webform submissions.
+ */
+function webform_workflow_write_submission_state($submission) {
+  db_merge('webform_workflow_submissions')
+    ->key(array('sid' => $submission->sid))
+    ->fields(array(
+      'nid' => $submission->nid,
+      'wsid' => $submission->webform_workflow_state['wsid'],
+    ))
+    ->execute();
+}
+
+/**
+ * Get the webform workflow state data.
+ *
+ * @param int $wsid
+ *   The workflow state id of the state we want to retrieve.
+ */
+function webform_workflow_get_state($wsid) {
+  $query = db_select('webform_workflow_states', 'wws')
+    ->fields('wws', array())
+    ->condition('wws.wsid', $wsid)
+    ->execute();
+
+  if ($state = $query->fetchAssoc()) {
+    return webform_workflow_normalize_state($state);
+  }
+
+  return array();
+}
+
+/**
+ * Delete a state from the database.
+ *
+ * @param int $wsid
+ *   The workflow state id to delete.
+ */
+function webform_workflow_delete_state($wsid) {
+  return db_delete('webform_workflow_states')
+    ->condition('wsid', $wsid)
+    ->execute();
+}
+
+/**
+ * Write a state to the database.
+ *
+ * @param int $nid
+ *   The node id of the webform we are assigning this state to.
+ *
+ * @param array $state
+ *   An array of values for the state in a normalized format.
+ */
+function webform_workflow_write_state($nid, $state) {
+  $data = array(
+    'permissions' => array(
+      'view' => $state['view_permissions'],
+      'edit' => $state['edit_permissions'],
+      'from' => $state['from_permissions'],
+      'to' => $state['to_permissions'],
+    ),
+    'notify_users' => $state['notify_users'],
+  );
+
+  $record = array(
+    'nid' => $nid,
+    'label' => $state['label'],
+    'data' => serialize($data),
+    'weight' => $state['weight'],
+  );
+
+  $wsid = $state['wsid'];
+  if ($wsid) {
+    $primary_key = array('wsid');
+    $record['wsid'] = $state['wsid'];
+  }
+  else {
+    $primary_key = array();
+  }
+
+  drupal_write_record('webform_workflow_states', $record, $primary_key);
+}
+
+/**
+ * Takes the raw database output of a state and normalizes it.
+ *
+ * This is for internal use only, abstracts the raw database columns away from 
+ * the associative array we manipulate.
+ *
+ * @param array $state
+ *   The database result.
+ */
+function webform_workflow_normalize_state($state) {
+  $data = unserialize($state['data']);
+  return array(
+    'label' => $state['label'],
+    'wsid' => $state['wsid'],
+    'nid' => $state['nid'],
+    'view_permissions' => $data['permissions']['view'],
+    'edit_permissions' => $data['permissions']['edit'],
+    'from_permissions' => $data['permissions']['from'],
+    'to_permissions' => $data['permissions']['to'],
+    'notify_users' => $data['notify_users'],
+    'weight' => $state['weight'],
+  );
+}
+
+/**
+ * Create an empty state.
+ *
+ * For internal use only.
+ */
+function webform_workflow_dummy_state($weight = 0) {
+  return array(
+    'label' => '',
+    'wsid' => 0,
+    'nid' => 0,
+    'view_permissions' => array(),
+    'edit_permissions' => array(),
+    'from_permissions' => array(),
+    'to_permissions' => array(),
+    'notify_users' => array(),
+    'weight' => $weight,
+  );
+}
+
+/**
+ * Notify users of state transition by email.
+ */
+function webform_workflow_notify_users($submission) {
+  $notify_emails = webform_workflow_get_user_emails($submission->webform_workflow_state['notify_users']);
+
+  global $user;
+  $email_from = $user->mail;
+
+  $nid = $submission->nid;
+  $email_templates = webform_workflow_load($nid)->data['emails'];
+
+  $token_data = array(
+    // @TODO: Add workflow tokens once complete.
+    'node' => node_load($nid),
+    'webform-submission' => $submission,
+  );
+  $params = array(
+    'subject' => token_replace($email_templates['subject'], $token_data),
+    'body'    => token_replace($email_templates['body'   ], $token_data),
+  );
+
+  foreach ($notify_emails as $email) {
+    drupal_mail('webform_workflow', 'transition', $email, LANGUAGE_NONE, $params, $email_from);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function webform_workflow_mail($key, &$message, $params) {
+  switch($key) {
+    case 'transition':
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['body'];
+      break;
+  }
+}

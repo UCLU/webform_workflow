@@ -1,0 +1,162 @@
+<?php
+/**
+ * @file
+ * Webform Workflow module install/schema hooks.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function webform_workflow_schema() {
+  $schema['webform_workflow_states'] = array(
+    'fields' => array(
+      'wsid' => array(
+        'description' => 'The primary key for the workflow state.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => 'The {webform}.nid this state is attached to.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'description' => 'The name of the state.',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'data' => array(
+        'description' => 'Any extra data attached to the state. E.g. permissions',
+        'type' => 'blob',
+        'not null' => FALSE,
+      ),
+      'weight' => array(
+        'description' => 'The weight of the state.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('wsid'),
+    'indexes' => array(
+      'nid' => array('nid'),
+    ),
+  );
+
+  $schema['webform_workflow_submissions'] = array(
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The {webform_submissions}.sid this state is attached to.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => 'The {webform}.nid this state is attached to.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'wsid' => array(
+        'description' => 'The {webform_workflow_states}.wsid of the state this submission is in.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('sid'),
+    'indexes' => array(
+      'nid' => array('nid', 'wsid'),
+    ),
+  );
+
+  $schema['webform_workflow'] = array(
+    'fields' => array(
+      'nid' => array(
+        'description' => 'The {webform}.nid',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'workflow' => array(
+        'description' => 'Whether workflow is enabled for this webform.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'data' => array(
+        'description' => 'Any extra data attached to the webform. E.g. email template',
+        'type' => 'blob',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('nid'),
+  );
+
+  $schema['webform_workflow_log'] = array(
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key for the log message.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'sid' => array(
+        'description' => 'The primary key for the webform submission.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => 'The {webform}.nid this state is attached to.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The {user}.uid this log was triggered by.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'wsid_from' => array(
+        'description' => 'The {webform_workflow_states}.wsid of the origin transition.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'wsid_to' => array(
+        'description' => 'The {webform_workflow_states}.wsid of the destination transition.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'message' => array(
+        'description' => 'A log message.',
+        'type' => 'text',
+      ),
+      'timestamp' => array(
+        'description' => 'The timestamp of the log.',
+        'type' => 'int',
+      ),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Add data field to webform_workflow table.
+ */
+function webform_workflow_update_7001() {
+  $schema_fields_data = array(
+    'description' => 'Any extra data attached to the webform. E.g. email template',
+    'type' => 'blob',
+    'not null' => FALSE,
+  );
+
+  db_add_field('webform_workflow', 'data', $schema_fields_data);
+}

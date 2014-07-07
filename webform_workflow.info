@@ -1,0 +1,6 @@
+name = Webform Workflow
+description = Enables basic workflow functionality for a webform submission
+core = 7.x
+package = Webform
+
+dependencies[] = webform
