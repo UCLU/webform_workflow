@@ -25,6 +25,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#prefix' => '<div id="states-fieldset-wrapper">',
     '#suffix' => '</div>',
     '#theme' => 'webform_workflow_admin_form',
+    '#tree' => TRUE,
   );
 
   $items = webform_workflow_get_available_states($node);
@@ -37,7 +38,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
   }
 
   $drupal_roles = user_roles(TRUE);
-  $drupal_roles['-1'] = 'original submitter';
+  $drupal_roles[WEBFORM_WORKFLOW_ORIGINAL_AUTHOR] = 'original submitter';
 
   $ops = array('view', 'edit', 'from', 'to');
 
@@ -137,15 +138,13 @@ function webform_workflow_config_form($form, &$form_state, $node) {
  * Ensures valid inputs otherwise sets form errors.
  */
 function webform_workflow_config_validate($form, &$form_state) {
-  $values = $form_state['values']['workflow'];
-
-  $enabled = (int)$values['enable_workflow'];
+  $enabled = (bool) $form_state['values']['enable_workflow'];
   if (!$enabled) {
     // Don't validate if not enabled.
     return;
   }
 
-  foreach ($values['states']['items'] as $key => $item) {
+  foreach ($form_state['values']['items'] as $key => $item) {
     $label = trim($item['label']);
     if (!empty($label)) {
       webform_workflow_get_users($item['notify_users'], $user_errors);
@@ -164,10 +163,9 @@ function webform_workflow_config_validate($form, &$form_state) {
  * Writes the provided workflows to the database.
  */
 function webform_workflow_config_submit($form, $form_state) {
-  $nid = $form_state['values']['nid'];
-  $values = $form_state['values']['workflow'];
+  $node = $form_state['node'];
 
-  foreach ($values['states']['items'] as $item) {
+  foreach ($form_state['values']['states']['items'] as $item) {
     $label = trim($item['label']);
     if (!empty($label)) {
       $state = array(
@@ -181,21 +179,20 @@ function webform_workflow_config_submit($form, $form_state) {
         'wsid' => $item['wsid'],
       );
 
-      webform_workflow_write_state($nid, $state);
+      webform_workflow_write_state($node->nid, $state);
     }
     elseif ($wsid = $item['wsid']) {
       webform_workflow_delete_state($wsid);
     }
   }
 
-  $enabled = (int)$values['enable_workflow'];
   $data_array = array(
-    'emails' => $values['emails'],
+    'emails' => $form_state['values']['emails'],
   );
   db_merge('webform_workflow')
-    ->key(array('nid' => $nid))
+    ->key(array('nid' => $node->nid))
     ->fields(array(
-      'workflow' => $enabled,
+      'workflow' => $form_state['values']['enable_workflow'] ? 1 : 0,
       'data' => serialize($data_array),
     ))
     ->execute();

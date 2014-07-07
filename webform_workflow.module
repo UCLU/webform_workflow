@@ -7,6 +7,59 @@
 define('WEBFORM_WORKFLOW_ORIGINAL_AUTHOR', -1);
 
 /**
+ * Implements hook_entity_info().
+ */
+function webform_workflow_entity_info() {
+  $entities = array();
+
+  $entities['webform_workflow_state'] = array(
+    'label' => t('Webform Workflow State'),
+    'controller class' => 'WebformWorkflowStateController',
+    'views controller class' => 'EntityDefaultViewsController',
+    'uri callback' => 'webform_workflow_state_uri',
+    'access callback' => 'webform_workflow_state_access',
+    'base table' => 'webform_workflow_states',
+    'revision table' => 'commerce_event_ticket_revision',
+    'token type' => 'commerce-event-ticket',
+    'entity keys' => array(
+      'id' => 'wsid',
+      'label' => 'label'
+    ),
+    'view callback' => 'entity_metadata_view_single',
+    'static cache' => TRUE,
+    'fieldable' => TRUE,
+    'module' => 'webform_workflow',
+    'metatag' => FALSE,
+    'redirect' => FALSE,
+  );
+
+  return $entities;
+}
+
+/**
+ * Access callback for a workflow state.
+ */
+function webform_workflow_state_access($op, $state, $account = NULL) {
+  $node = node_load($state->nid);
+  return node_access('update', $node);
+}
+
+/**
+ * URI callback for a workflow state.
+ */
+function webform_workflow_state_uri($state) {
+  return 'node/' . $state->nid . '/webform/workflow/state/' . $state->wsid;
+}
+
+/**
+ * Load a single workflow state.
+ */
+function webform_workflow_state_load($wsid) {
+  $states = entity_load('webform_workflow_state', array($wsid));
+  return $states ? reset($states) : FALSE;
+}
+
+/**
  * Implements hook_menu().
  */
 function webform_workflow_menu() {
@@ -20,6 +73,17 @@ function webform_workflow_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => 5,
   );
+
+  $items['node/%webform_menu/webform/workflow/state/%webform_workflow_state'] = array(
+    'title callback' => 'entity_label',
+    'title arguments' => array('webform_workflow_state', 5),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_workflow_state_form', 1, 5),
+    'file' => 'includes/webform_workflow_state.forms.inc',
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+  );
+
   $items['node/%webform_menu/submission/%webform_menu_submission/state/%/confirmation'] = array(
     'title' => 'Workflow State Change - Add message',
     'page callback' => 'webform_workflow_confirmation',
