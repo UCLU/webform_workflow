@@ -148,7 +148,7 @@ function webform_workflow_webform_submission_render_alter(&$renderable) {
       '#weight' => -1,
     );
 
-    $label = (isset($state['label'])) ? $state['label'] : 'Unknown';
+    $label = $state->label ? $state->label : t('Unknown');
 
     $renderable['workflow']['state'] = array(
       '#markup' => "Current state: " . $label,
@@ -194,24 +194,11 @@ function webform_workflow_webform_submission_load(&$submissions) {
   foreach ($submissions as $sid => $submission) {
     $node = node_load($submission->nid);
     if (webform_workflow_is_enabled($node)) {
-      $error = FALSE;
-      if ($wsid = webform_workflow_get_submission_state($sid)) {
-        $state = webform_workflow_state_load($wsid);
-        if ($state) {
-          $submissions[$sid]->webform_workflow_state = $state;
-        }
-        else {
-          $error = TRUE;
-        }
-      }
-      else {
-        $error = TRUE;
-      }
-
-      if ($error) {
-        drupal_set_message(t("The submission was in an invalid workflow state (WSID: @wsid). If you click approve/reject it will default back to the first state in the workflow.", array("@wsid" => $wsid)), "error");
-        $submissions[$sid]->webform_workflow_state = array();
-      }
+      $wsid = webform_workflow_get_submission_state($sid);
+      $state = $wsid ? webform_workflow_state_load($wsid) : entity_create('webform_workflow_state', array(
+        'nid' => $node->nid,
+      ));
+      $submission->webform_workflow_state = $state;
     }
   }
 }
@@ -234,7 +221,7 @@ function webform_workflow_webform_submission_actions($node, $submission) {
     $current_state = $submission->webform_workflow_state;
 
     foreach ($user->roles as $rid => $role) {
-      if (in_array($rid, $current_state['from_permissions'])) {
+      if (in_array($rid, $current_state->data['permissions']['from'])) {
         $transition_from_current = TRUE;
         break;
       }
@@ -250,14 +237,14 @@ function webform_workflow_webform_submission_actions($node, $submission) {
       $available_states = webform_workflow_get_available_states($node);
 
       foreach ($available_states as $state) {
-        if (in_array($rid, $state['to_permissions'])) {
+        if (in_array($rid, $state->data['permissions']['to'])) {
 
           // only output a link if we're not in that state already - we can't transition to the same state we're already in!
-          if ($current_state['wsid'] != $state['wsid']) {
-            $action = 'workflow_' . strtolower($state['label']);
+          if ($current_state['wsid'] != $state->wsid) {
+            $action = 'workflow_' . strtolower($state->label);
             $actions[$action] = array(
-              'title' => t($state['label']),
-              'href' => 'node/' . $node->nid . '/submission/' . $submission->sid . '/state/' . $state['wsid'] . '/confirmation',
+              'title' => $state->label,
+              'href' => 'node/' . $node->nid . '/submission/' . $submission->sid . '/state/' . $state->wsid . '/confirmation',
             );
           }
 
@@ -482,7 +469,7 @@ function webform_workflow_webform_submission_access($node, $submission, $op, $ac
       return FALSE;
     }
     $state = $submission->webform_workflow_state;
-    if (!isset($state[$op . '_permissions'])) {
+    if (empty($state->data['permissions'][$op])) {
       return FALSE;
     }
 
@@ -547,6 +534,13 @@ function webform_workflow_get_default_email() {
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_workflow_form_node_form_alter(&$form, &$form_state) {
+  unset($form['field_ww_states']);
+}
+
+/**
  * Check if workflow has been enabled for the current webform.
  *
  * @param object $node
@@ -556,7 +550,6 @@ function webform_workflow_get_default_email() {
 function webform_workflow_is_enabled($node) {
   return !empty($node->webform_workflow);
 }
-
 
 /**
  * Get all states attached to a webform.
@@ -568,9 +561,13 @@ function webform_workflow_is_enabled($node) {
  *   An array of states.
  */
 function webform_workflow_get_available_states($node) {
-  $states = entity_load('webform_workflow_state', FALSE, array('nid' => $node->nid));
-  if ($states) {
-    uasort($states, '_webform_workflow_state_sort');
+  $states = array();
+  $wrapper = entity_metadata_wrapper('node', $node);
+  if (empty($wrapper->ww_states)) {
+    return array();
+  }
+  foreach ($wrapper->ww_states as $key => $state_wrapper) {
+    $states[$key] = $state_wrapper->value();
   }
   return $states;
 }

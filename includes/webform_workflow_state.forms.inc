@@ -50,30 +50,32 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#size' => 16,
   );
 
-  $form['permissions'] = array(
+  $form['data'] = array(
+    '#tree' => TRUE,
+  );
+  $form['data']['permissions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Permissions'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
+    '#tree' => TRUE,
   );
-
   $drupal_roles = user_roles(TRUE);
   $drupal_roles[WEBFORM_WORKFLOW_ORIGINAL_AUTHOR] = 'original submitter';
   $role_checkboxes = array(
     '#type' => 'select',
     '#multiple' => TRUE,
     '#options' => $drupal_roles,
-    '#default_value' => array(),
   );
 
   foreach ($ops as $op => $label) {
-    $form['permissions'][$op . '_permissions'] = $role_checkboxes + array(
+    $form['data']['permissions'][$op] = $role_checkboxes + array(
       '#title' => $label,
       '#default_value' => $state->data['permissions'][$op],
     );
   }
 
-  $form['notify_users'] = array(
+  $form['data']['notify_users'] = array(
     '#type' => 'textarea',
     '#title' => t('Notification e-mail addresses'),
     '#default_value' => webform_workflow_get_user_text($state->data['notify_users']),
@@ -81,15 +83,25 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#cols' => 32,
     '#element_validate' => array('webform_workflow_state_validate_notify_users'),
   );
-
-  $form['#submit'][] = 'webform_workflow_state_form_submit';
 }
 
 /**
  * Submit callback for the webform workflow state form.
  */
 function webform_workflow_state_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
   $state = $form_state['state'];
+  $instances = field_info_instances('webform_workflow_state', 'webform_workflow_state');
+
+  $values_excluding_fields = array_diff_key($values, $instances);
+  foreach ($values_excluding_fields as $property => $value) {
+    $state->$property = $value;
+  }
+
+  if ($instances) {
+    field_attach_submit('webform_workflow_state', $state, $form, $form_state);
+  }
+  entity_get_controller('webform_workflow_state')->save($state);
 }
 
 /**
