@@ -56,9 +56,8 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
   $form['data']['permissions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Permissions'),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
     '#tree' => TRUE,
+    '#attributes' => array('class' => array('webform-workflow-state-permissions')),
   );
   $drupal_roles = user_roles(TRUE);
   $drupal_roles[WEBFORM_WORKFLOW_ORIGINAL_AUTHOR] = 'original submitter';
@@ -83,6 +82,8 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#cols' => 32,
     '#element_validate' => array('webform_workflow_state_validate_notify_users'),
   );
+
+  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow_state_form.css';
 }
 
 /**

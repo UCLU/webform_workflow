@@ -30,7 +30,7 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
   protected function getDataDefaults() {
     return array(
       'permissions' => array(
-        'view' => array(),
+        'view' => array(WEBFORM_WORKFLOW_ORIGINAL_AUTHOR),
         'edit' => array(),
         'from' => array(),
         'to' => array(),
