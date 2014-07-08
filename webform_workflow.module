@@ -646,17 +646,22 @@ function webform_workflow_state_delete($wsid) {
  * Notify users of state transition by email.
  */
 function webform_workflow_notify_users($submission) {
-  $notify_emails = webform_workflow_get_user_emails($submission->webform_workflow_state['notify_users']);
+  $state = $submission->webform_workflow_state;
+  $notify_emails = webform_workflow_get_user_emails($state->data['notify_users']);
+
+  if (!$notify_emails) {
+    return;
+  }
 
   global $user;
   $email_from = $user->mail;
 
-  $nid = $submission->nid;
-  $email_templates = webform_workflow_load($nid)->data['emails'];
+  $node = node_load($submission->nid);
+  $email_templates = webform_workflow_load($node)->data['emails'];
 
   $token_data = array(
     // @TODO: Add workflow tokens once complete.
-    'node' => node_load($nid),
+    'node' => $node,
     'webform-submission' => $submission,
   );
   $params = array(
