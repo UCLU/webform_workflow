@@ -37,6 +37,11 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#tree' => TRUE,
+    '#states' => array(
+      'visible' => array(
+        'input[name="enable_workflow"]' => array('checked' => TRUE),
+      ),
+    ),
   );
   $form['emails']['subject'] = array(
     '#type' => 'textfield',

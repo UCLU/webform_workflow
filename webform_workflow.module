@@ -100,18 +100,6 @@ function webform_workflow_menu() {
 }
 
 /**
- * Implements hook_theme().
- */
-function webform_workflow_theme($existing, $type, $theme, $path) {
-  return array(
-    'webform_workflow_admin_form' => array(
-      'render element' => 'element',
-      'file' => 'includes/webform_workflow.theme.inc',
-    ),
-  );
-}
-
-/**
  * For webform API see: http://drupalcontrib.org/api/drupal/contributions%21webform%21webform.api.php/7
  */
 
