@@ -100,4 +100,6 @@ function webform_workflow_config_form_submit($form, &$form_state) {
       'data' => serialize($data_array),
     ))
     ->execute();
+
+  node_save($node);
 }
