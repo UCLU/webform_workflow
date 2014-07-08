@@ -1,0 +1,9 @@
+name = webform_workflow_state_field
+core = 7.x
+package = Features
+dependencies[] = entityreference
+dependencies[] = features
+dependencies[] = inline_entity_form
+features[features_api][] = api:2
+features[field_base][] = field_ww_states
+features[field_instance][] = node-webform-field_ww_states

@@ -31,6 +31,9 @@ function webform_workflow_entity_info() {
     'module' => 'webform_workflow',
     'metatag' => FALSE,
     'redirect' => FALSE,
+    'inline entity form' => array(
+      'controller' => 'WebformWorkflowStateInlineEntityFormController',
+    ),
   );
 
   return $entities;
@@ -160,9 +163,9 @@ function webform_workflow_webform_submission_render_alter(&$renderable) {
       $user = user_load($log->uid);
       $user_name = ($user) ? $user->name : "Unknown user";
       $message = ($log->message) ? $log->message . '.' : '';
-      $from_state = webform_workflow_get_state($log->wsid_from);
+      $from_state = webform_workflow_state_load($log->wsid_from);
       $from_label = ($from_state) ? $from_state['label'] : 'Unknown';
-      $to_state = webform_workflow_get_state($log->wsid_to);
+      $to_state = webform_workflow_state_load($log->wsid_to);
       $to_label = ($to_state) ? $to_state['label'] : 'Unknown';
       $timestamp = $log->timestamp;
       $date = DateTime::createFromFormat('U', $timestamp);
@@ -193,7 +196,7 @@ function webform_workflow_webform_submission_load(&$submissions) {
     if (webform_workflow_is_enabled($node)) {
       $error = FALSE;
       if ($wsid = webform_workflow_get_submission_state($sid)) {
-        $state = webform_workflow_get_state($wsid);
+        $state = webform_workflow_state_load($wsid);
         if ($state) {
           $submissions[$sid]->webform_workflow_state = $state;
         }
@@ -334,7 +337,7 @@ function webform_workflow_confirmation_form_submit($form, &$form_state){
  */
 function webform_workflow_transition($node, $submission, $next_state_id, $message = NULL) {
 
-  $next_state = webform_workflow_get_state($next_state_id);
+  $next_state = webform_workflow_state_load($next_state_id);
 
   if ($next_state) {
     $current_state = $submission->webform_workflow_state;
@@ -560,20 +563,29 @@ function webform_workflow_is_enabled($node) {
  *
  * @param int $nid
  *   The node id of the webform.
+ *
+ * @return array
+ *   An array of states.
  */
 function webform_workflow_get_available_states($node) {
-  $query = db_select('webform_workflow_states', 'wws')
-    ->fields('wws', array())
-    ->condition('wws.nid', $node->nid)
-    ->orderBy('weight', 'asc')
-    ->execute();
-
-  $states = array();
-  foreach ($query->fetchAllAssoc('wsid', PDO::FETCH_ASSOC) as $key => $state) {
-    $states[$key] = webform_workflow_normalize_state($state);
+  $states = entity_load('webform_workflow_state', FALSE, array('nid' => $node->nid));
+  if ($states) {
+    uasort($states, '_webform_workflow_state_sort');
   }
-
   return $states;
+}
+
+/**
+ * Sort states by weight.
+ */
+function _webform_workflow_state_sort($a, $b) {
+  if ($a->weight != $b->weight) {
+    return $a->weight < $b->weight ? -1 : 1;
+  }
+  elseif ($a->name == $b->name) {
+    return 0;
+  }
+  return $a->name < $b->name ? -1 : 1;
 }
 
 /**
@@ -636,116 +648,13 @@ function webform_workflow_write_submission_state($submission) {
 }
 
 /**
- * Get the webform workflow state data.
- *
- * @param int $wsid
- *   The workflow state id of the state we want to retrieve.
- */
-function webform_workflow_get_state($wsid) {
-  $query = db_select('webform_workflow_states', 'wws')
-    ->fields('wws', array())
-    ->condition('wws.wsid', $wsid)
-    ->execute();
-
-  if ($state = $query->fetchAssoc()) {
-    return webform_workflow_normalize_state($state);
-  }
-
-  return array();
-}
-
-/**
  * Delete a state from the database.
  *
  * @param int $wsid
  *   The workflow state id to delete.
  */
-function webform_workflow_delete_state($wsid) {
-  return db_delete('webform_workflow_states')
-    ->condition('wsid', $wsid)
-    ->execute();
-}
-
-/**
- * Write a state to the database.
- *
- * @param int $nid
- *   The node id of the webform we are assigning this state to.
- *
- * @param array $state
- *   An array of values for the state in a normalized format.
- */
-function webform_workflow_write_state($nid, $state) {
-  $data = array(
-    'permissions' => array(
-      'view' => $state['view_permissions'],
-      'edit' => $state['edit_permissions'],
-      'from' => $state['from_permissions'],
-      'to' => $state['to_permissions'],
-    ),
-    'notify_users' => $state['notify_users'],
-  );
-
-  $record = array(
-    'nid' => $nid,
-    'label' => $state['label'],
-    'data' => serialize($data),
-    'weight' => $state['weight'],
-  );
-
-  $wsid = $state['wsid'];
-  if ($wsid) {
-    $primary_key = array('wsid');
-    $record['wsid'] = $state['wsid'];
-  }
-  else {
-    $primary_key = array();
-  }
-
-  drupal_write_record('webform_workflow_states', $record, $primary_key);
-}
-
-/**
- * Takes the raw database output of a state and normalizes it.
- *
- * This is for internal use only, abstracts the raw database columns away from
- * the associative array we manipulate.
- *
- * @param array $state
- *   The database result.
- */
-function webform_workflow_normalize_state($state) {
-  $data = unserialize($state['data']);
-  return array(
-    'label' => $state['label'],
-    'wsid' => $state['wsid'],
-    'nid' => $state['nid'],
-    'view_permissions' => $data['permissions']['view'],
-    'edit_permissions' => $data['permissions']['edit'],
-    'from_permissions' => $data['permissions']['from'],
-    'to_permissions' => $data['permissions']['to'],
-    'notify_users' => $data['notify_users'],
-    'weight' => $state['weight'],
-  );
-}
-
-/**
- * Create an empty state.
- *
- * For internal use only.
- */
-function webform_workflow_dummy_state($weight = 0) {
-  return array(
-    'label' => '',
-    'wsid' => 0,
-    'nid' => 0,
-    'view_permissions' => array(),
-    'edit_permissions' => array(),
-    'from_permissions' => array(),
-    'to_permissions' => array(),
-    'notify_users' => array(),
-    'weight' => $weight,
-  );
+function webform_workflow_state_delete($wsid) {
+  return entity_get_controller('webform_workflow_state')->delete(array($wsid));
 }
 
 /**
