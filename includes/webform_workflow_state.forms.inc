@@ -37,10 +37,10 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
   $form_state['state'] = $state;
 
   $ops = array(
-    'view' => t('View'),
-    'edit' => t('Edit'),
-    'from' => t('Change from'),
-    'to' => t('Change to'),
+    'view' => t('View submission'),
+    'edit' => t('Edit submission'),
+    'from' => t('Change from this state'),
+    'to' => t('Change to this state'),
   );
 
   $form['label'] = array(
@@ -48,6 +48,7 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#title' => t('Name'),
     '#default_value' => $state->label,
     '#size' => 16,
+    '#required' => TRUE,
   );
 
   $form['data'] = array(

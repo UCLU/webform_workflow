@@ -1,22 +1,25 @@
 <?php
 /**
  * @file
- * webform_workflow_state_field.features.field_base.inc
+ * Default field bases for the Webform Workflow module.
  */
 
 /**
- * Implements hook_field_default_field_bases().
+ * Get default field bases.
+ *
+ * @return array
+ *   An array of field base definitions.
  */
-function webform_workflow_state_field_field_default_field_bases() {
+function _webform_workflow_field_bases() {
   $field_bases = array();
 
-  // Exported field_base: 'field_ww_states'
-  $field_bases['field_ww_states'] = array(
+  // Exported field_base: 'webform_workflow_states'
+  $field_bases['webform_workflow_states'] = array(
     'active' => 1,
     'cardinality' => -1,
     'deleted' => 0,
-    'entity_types' => array(),
-    'field_name' => 'field_ww_states',
+    'entity_types' => array('node'),
+    'field_name' => 'webform_workflow_states',
     'foreign keys' => array(
       'webform_workflow_states' => array(
         'columns' => array(

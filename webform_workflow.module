@@ -469,7 +469,7 @@ function webform_workflow_webform_submission_access($node, $submission, $op, $ac
     }
 
     foreach ($roles as $rid) {
-      if (in_array($rid, $state[$op . '_permissions'])) {
+      if (in_array($rid, $state->data['permissions'][$op])) {
         return TRUE;
       }
     }
@@ -525,7 +525,7 @@ function webform_workflow_get_default_email() {
  * Implements hook_form_FORM_ID_alter().
  */
 function webform_workflow_form_node_form_alter(&$form, &$form_state) {
-  unset($form['field_ww_states']);
+  unset($form['webform_workflow_states']);
 }
 
 /**

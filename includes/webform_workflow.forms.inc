@@ -27,7 +27,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
       ),
     ),
   );
-  field_attach_form('node', $node, $form['states'], $form_state, NULL, array('field_name' => 'field_ww_states'));
+  field_attach_form('node', $node, $form['states'], $form_state, NULL, array('field_name' => 'webform_workflow_states'));
 
   $emails = isset($node->webform_workflow) ? $node->webform_workflow->data['emails'] : webform_workflow_get_default_email();
 

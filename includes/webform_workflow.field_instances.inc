@@ -1,17 +1,20 @@
 <?php
 /**
  * @file
- * webform_workflow_state_field.features.field_instance.inc
+ * Default field instances for the Webform Workflow module.
  */
 
 /**
- * Implements hook_field_default_field_instances().
+ * Get default field instances.
+ *
+ * @return array
+ *   An array of field instance definitions.
  */
-function webform_workflow_state_field_field_default_field_instances() {
+function _webform_workflow_field_instances() {
   $field_instances = array();
 
-  // Exported field_instance: 'node-webform-field_ww_states'
-  $field_instances['node-webform-field_ww_states'] = array(
+  // Exported field_instance: 'node-webform-webform_workflow_states'
+  $field_instances['node-webform-webform_workflow_states'] = array(
     'bundle' => 'webform',
     'deleted' => 0,
     'description' => '',
@@ -30,7 +33,7 @@ function webform_workflow_state_field_field_default_field_instances() {
       ),
     ),
     'entity_type' => 'node',
-    'field_name' => 'field_ww_states',
+    'field_name' => 'webform_workflow_states',
     'label' => 'States',
     'required' => 0,
     'settings' => array(
@@ -41,7 +44,11 @@ function webform_workflow_state_field_field_default_field_instances() {
       'module' => 'inline_entity_form',
       'settings' => array(
         'fields' => array(),
-        'type_settings' => array(),
+        'type_settings' => array(
+          'allow_existing' => 0,
+          'delete_references' => 1,
+          'match_operator' => 'CONTAINS',
+        ),
       ),
       'type' => 'inline_entity_form',
       'weight' => -4,
