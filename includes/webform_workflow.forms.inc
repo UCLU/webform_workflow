@@ -19,13 +19,13 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#default_value' => webform_workflow_is_enabled($node),
   );
 
+  $enable_workflow_trigger = array(
+    'input[name="enable_workflow"]' => array('checked' => TRUE),
+  );
+
   $form['states'] = array(
     '#type' => 'container',
-    '#states' => array(
-      'visible' => array(
-        'input[name="enable_workflow"]' => array('checked' => TRUE),
-      ),
-    ),
+    '#states' => array('visible' => $enable_workflow_trigger),
   );
   field_attach_form('node', $node, $form['states'], $form_state, NULL, array('field_name' => 'webform_workflow_states'));
 
@@ -37,11 +37,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#tree' => TRUE,
-    '#states' => array(
-      'visible' => array(
-        'input[name="enable_workflow"]' => array('checked' => TRUE),
-      ),
-    ),
+    '#states' => array('visible' => $enable_workflow_trigger),
   );
   $form['emails']['subject'] = array(
     '#type' => 'textfield',

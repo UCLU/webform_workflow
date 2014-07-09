@@ -33,13 +33,6 @@ function webform_workflow_schema() {
         'type' => 'blob',
         'not null' => FALSE,
       ),
-      'weight' => array(
-        'description' => 'The weight of the state.',
-        'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
     ),
     'primary key' => array('wsid'),
     'indexes' => array(
@@ -174,17 +167,4 @@ function webform_workflow_install() {
       field_create_instance($instance);
     }
   }
-}
-
-/**
- * Add data field to webform_workflow table.
- */
-function webform_workflow_update_7001() {
-  $schema_fields_data = array(
-    'description' => 'Any extra data attached to the webform. E.g. email template',
-    'type' => 'blob',
-    'not null' => FALSE,
-  );
-
-  db_add_field('webform_workflow', 'data', $schema_fields_data);
 }
