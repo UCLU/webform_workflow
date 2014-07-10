@@ -4,7 +4,7 @@
  * A simple workflow module for webforms.
  */
 
-define('WEBFORM_WORKFLOW_ORIGINAL_AUTHOR', -1);
+define('WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER', 'WWOS');
 
 /**
  * Implements hook_entity_info().
@@ -207,16 +207,20 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   global $user;
   $state = $submission->webform_workflow_state;
 
-  $transition_from_current = empty($state->wsid) || array_intersect(array_keys($user->roles), $state->data['permissions']['from']);
+  $node = node_load($submission->nid);
+  $is_admin = node_access('update', $node);
+
+  $transition_from_current = $is_admin || array_intersect(array_keys($user->roles), $state->data['permissions']['from']);
   if (!$transition_from_current) {
     return;
   }
 
   $new_state_options = array();
-  $node = node_load($submission->nid);
   $available_states = webform_workflow_get_available_states($node);
   foreach ($available_states as $new_state) {
-    if (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])) {
+    if ($new_state->wsid != $state->wsid
+      && (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])
+        || $is_admin)) {
       $new_state_options[$new_state->wsid] = $new_state->label;
     }
   }
@@ -401,7 +405,7 @@ function webform_workflow_webform_submission_access($node, $submission, $op, $ac
 
     // If we are the original author, add to our role list to flag this.
     if ($submission->uid == $account->uid) {
-      $roles[] = WEBFORM_WORKFLOW_ORIGINAL_AUTHOR;
+      $roles[] = WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER;
     }
 
     foreach ($roles as $rid) {
@@ -595,6 +599,23 @@ function webform_workflow_notify_users($submission) {
   foreach ($notify_emails as $email) {
     drupal_mail('webform_workflow', 'transition', $email, LANGUAGE_NONE, $params, $email_from);
   }
+}
+
+/**
+ * Get array of emails from array of user uids or emails.
+ */
+function webform_workflow_get_user_emails($notify_users) {
+  $emails = array();
+  foreach ($notify_users as $u) {
+    if (is_numeric($u)) {
+      $user = user_load($u);
+      $emails[] = $user->mail;
+    }
+    elseif (valid_email_address($u)) {
+      $emails[] = $u;
+    }
+  }
+  return $emails;
 }
 
 /**

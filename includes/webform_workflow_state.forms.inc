@@ -61,7 +61,7 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#attributes' => array('class' => array('webform-workflow-state-permissions')),
   );
   $drupal_roles = user_roles(TRUE);
-  $drupal_roles[WEBFORM_WORKFLOW_ORIGINAL_AUTHOR] = 'original submitter';
+  $drupal_roles[WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER] = 'original submitter';
   $role_checkboxes = array(
     '#type' => 'select',
     '#multiple' => TRUE,
@@ -142,21 +142,4 @@ function webform_workflow_get_users($notify_users_text, &$user_errors = NULL) {
     }
   }
   return $valid_users;
-}
-
-/**
- * Get array of emails from array of user uids or emails.
- */
-function webform_workflow_get_user_emails($notify_users) {
-  $emails = array();
-  foreach ($notify_users as $u) {
-    if (is_numeric($u)) {
-      $user = user_load($u);
-      $emails[] = $user->mail;
-    }
-    else {
-      $emails[] = $u;
-    }
-  }
-  return $emails;
 }
