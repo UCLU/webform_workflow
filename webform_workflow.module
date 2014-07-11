@@ -137,42 +137,6 @@ function webform_workflow_get_user_text($notify_users) {
   return implode("\n", $users);
 }
 
-
-    //~ $renderable['workflow']['log'] = array(
-      //~ '#type' => 'fieldset',
-      //~ '#title' => 'Transition Log',
-    //~ );
-//~
-    //~ $items = array();
-    //~ foreach (webform_workflow_log_get($submission->sid) as $log) {
-      //~ $account = user_load($log->uid);
-      //~ $account_name = $account ? $account->name : t('Unknown user');
-      //~ $message = $log->message ? $log->message . '.' : '';
-      //~ $from_state = webform_workflow_state_load($log->wsid_from);
-      //~ $from_label = $from_state ? $from_state->label : t('Unknown');
-      //~ $to_state = webform_workflow_state_load($log->wsid_to);
-      //~ $to_label = $to_state ? $to_state->label : t('Unknown');
-//~
-      //~ $item = t("@date Transition from <strong>@from</strong> to <strong>@to</strong> by @user.", array(
-        //~ '@date' => format_date($log->timestamp),
-        //~ '@from' => $from_label,
-        //~ '@to' => $to_label,
-        //~ '@user' => $account_name,
-        //~ '@message' => $message,
-      //~ ));
-//~
-      //~ if ($message) {
-        //~ $item .= '<br />' . check_plain($message);
-      //~ }
-//~
-      //~ $items[] = $item;
-    //~ }
-//~
-    //~ $renderable['workflow']['log']['items'] = array(
-      //~ '#markup' => theme('item_list', array('items' => $items)),
-    //~ );
-
-
 /**
  * Implements hook_webform_submission_render_alter().
  *
@@ -193,8 +157,6 @@ function webform_workflow_webform_submission_render_alter(&$renderable) {
     '#weight' => -1,
   );
 
-  $label = $state && $state->label ? $state->label : t('Unknown');
-
   $renderable['workflow']['form'] = drupal_get_form('webform_workflow_submission_state_form', $submission);
 }
 
@@ -211,7 +173,7 @@ function webform_workflow_webform_submission_load(&$submissions) {
       $state = $wsid ? webform_workflow_state_load($wsid) : FALSE;
       $submission->webform_workflow_state = $state ? $state : entity_create('webform_workflow_state', array(
         'nid' => $node->nid,
-        'label' => t('Unknown'),
+        'label' => t('None'),
       ));
     }
   }
@@ -347,23 +309,13 @@ function webform_workflow_log_transition($submission, $from, $to, $message = NUL
     'uid' => $user->uid,
     'wsid_from' => $from->wsid,
     'wsid_to' => $to->wsid,
+    'wsid_from_label' => $from->label,
+    'wsid_to_label' => $to->label,
     'message' => $message,
     'timestamp' => REQUEST_TIME,
   );
 
   drupal_write_record('webform_workflow_log', $record);
-}
-
-
-/**
- * Get the transitions from the log table.
- */
-function webform_workflow_log_get($sid) {
-  return db_select('webform_workflow_log', 'wwl')
-    ->fields('wwl')
-    ->condition('sid', $sid)
-    ->execute()
-    ->fetchAllAssoc('id');
 }
 
 /**
@@ -427,14 +379,12 @@ function webform_workflow_entity_delete($entity, $type) {
     db_delete('webform_workflow_submissions')
       ->condition('wsid', $entity->wsid)
       ->execute();
-
-    // @todo Preserve the state label in the log table.
     db_update('webform_workflow_log')
-      ->fields('wsid_to', '')
+      ->fields(array('wsid_to' => NULL))
       ->condition('wsid_to', $entity->wsid)
       ->execute();
     db_update('webform_workflow_log')
-      ->fields('wsid_from', '')
+      ->fields(array('wsid_from' => NULL))
       ->condition('wsid_from', $entity->wsid)
       ->execute();
   }
