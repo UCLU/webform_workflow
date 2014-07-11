@@ -1,0 +1,15 @@
+/**
+ * @file
+ * CSS for the Webform Workflow module.
+ */
+
+.webform-workflow-state-permissions .form-item {
+  display: inline-block;
+  margin: 0 10px;
+}
+
+#webform-workflow-submission-state-form .form-type-item,
+#webform-workflow-submission-state-form .form-type-select {
+  display: inline-block;
+  margin-right: 10px;
+}

@@ -136,6 +136,12 @@ function webform_workflow_schema() {
       ),
     ),
     'primary key' => array('id'),
+    'indexes' => array(
+      'submission' => array('nid', 'sid'),
+      'wsid_from' => array('wsid_from'),
+      'wsid_to' => array('wsid_to'),
+      'timestamp' => array('timestamp'),
+    ),
   );
 
   return $schema;

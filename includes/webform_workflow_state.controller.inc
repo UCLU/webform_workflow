@@ -18,7 +18,7 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
       'weight' => 0,
     );
     // Overwrite default values with supplied values.
-    $values = array_merge_recursive($default_values, $values);
+    $values = array_merge($default_values, $values);
     return parent::create($values);
   }
 

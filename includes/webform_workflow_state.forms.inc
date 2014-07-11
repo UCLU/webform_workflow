@@ -84,7 +84,7 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#element_validate' => array('webform_workflow_state_validate_notify_users'),
   );
 
-  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow_state_form.css';
+  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';
 }
 
 /**

@@ -8,7 +8,6 @@
  * Configuration form.
  */
 function webform_workflow_config_form($form, &$form_state, $node) {
-
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
 
   $form_state['node'] = $node;
