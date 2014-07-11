@@ -50,6 +50,9 @@ function webform_workflow_entity_info() {
  * @return bool
  */
 function webform_workflow_state_access($op, $state, $account = NULL) {
+  if ($op == 'delete' && webform_workflow_state_is_locked($state)) {
+    return FALSE;
+  }
   $node = $state->nid ? node_load($state->nid) : menu_get_object('webform_menu');
   // Account for Inline Entity Form's AJAX callbacks, which mean that the node
   // ID is not available in the URL (when checking for create access, the
@@ -62,6 +65,21 @@ function webform_workflow_state_access($op, $state, $account = NULL) {
     return TRUE;
   }
   return $node && node_access('update', $node, $account);
+}
+
+/**
+ * Check whether a state is locked against deletion.
+ *
+ * @return bool
+ *   TRUE if the state has any submissions associated with it, FALSE otherwise.
+ */
+function webform_workflow_state_is_locked($state) {
+  $query = db_select('webform_workflow_submissions')
+    ->condition('wsid', $state->wsid)
+    ->range(0, 1);
+  $query->addExpression('COUNT(*)');
+  $count = $query->execute()->fetchField();
+  return $count > 0;
 }
 
 /**
