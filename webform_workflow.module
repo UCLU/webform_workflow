@@ -195,12 +195,17 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   }
 
   $new_state_options = array();
+  $seen_current = FALSE;
   $available_states = webform_workflow_get_available_states($node);
   foreach ($available_states as $new_state) {
-    if ($new_state->wsid != $state->wsid
-      && (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])
-        || $is_admin)) {
-      $new_state_options[$new_state->wsid] = $new_state->label;
+    if ($new_state->wsid == $state->wsid) {
+      $seen_current = TRUE;
+      continue;
+    }
+    if (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])
+        || $is_admin) {
+      $key = $seen_current ? t('Later states') : t('Earlier states');
+      $new_state_options[$key][$new_state->wsid] = $new_state->label;
     }
   }
 
