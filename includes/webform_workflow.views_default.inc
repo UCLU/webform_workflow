@@ -10,7 +10,6 @@
 function webform_workflow_views_default_views() {
   $views = array();
 
-  // Exported view: webform_workflow_submissions.
   $view = new view();
   $view->name = 'webform_workflow_submissions';
   $view->description = '';
@@ -255,6 +254,187 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['arguments']['nid']['validate']['type'] = 'node';
   $handler->display->display_options['arguments']['nid']['validate_options']['access'] = TRUE;
   $handler->display->display_options['arguments']['nid']['validate_options']['access_op'] = 'update';
+
+  /* Display: Embed */
+  $handler = $view->new_display('embed', 'Embed', 'embed');
+
+  $views[$view->name] = $view;
+
+  $view = new view();
+  $view->name = 'webform_workflow_log';
+  $view->description = 'A list of Webform Workflow state changes.';
+  $view->tag = 'webform_workflow';
+  $view->base_table = 'webform_workflow_log';
+  $view->human_name = 'Webform Workflow log';
+  $view->core = 7;
+  $view->api_version = '3.0';
+  $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
+
+  /* Display: Master */
+  $handler = $view->new_display('default', 'Master', 'default');
+  $handler->display->display_options['title'] = 'Workflow log';
+  $handler->display->display_options['use_more_always'] = FALSE;
+  $handler->display->display_options['access']['type'] = 'perm';
+  $handler->display->display_options['access']['perm'] = 'access all webform results';
+  $handler->display->display_options['cache']['type'] = 'none';
+  $handler->display->display_options['query']['type'] = 'views_query';
+  $handler->display->display_options['exposed_form']['type'] = 'basic';
+  $handler->display->display_options['pager']['type'] = 'full';
+  $handler->display->display_options['style_plugin'] = 'table';
+  $handler->display->display_options['style_options']['columns'] = array(
+    'title' => 'title',
+    'sid' => 'sid',
+    'timestamp' => 'timestamp',
+    'label_1' => 'label_1',
+    'label' => 'label',
+    'message' => 'message',
+    'name' => 'name',
+    'view_submission' => 'view_submission',
+  );
+  $handler->display->display_options['style_options']['default'] = 'timestamp';
+  $handler->display->display_options['style_options']['info'] = array(
+    'title' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'sid' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'timestamp' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'desc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'label_1' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'label' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'message' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'name' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'view_submission' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+  );
+  $handler->display->display_options['style_options']['empty_table'] = TRUE;
+  /* No results behavior: Global: Text area */
+  $handler->display->display_options['empty']['area']['id'] = 'area';
+  $handler->display->display_options['empty']['area']['table'] = 'views';
+  $handler->display->display_options['empty']['area']['field'] = 'area';
+  $handler->display->display_options['empty']['area']['label'] = 'There are no workflow state changes to display.';
+  $handler->display->display_options['empty']['area']['empty'] = TRUE;
+  $handler->display->display_options['empty']['area']['content'] = 'There are no workflow state changes to display.';
+  $handler->display->display_options['empty']['area']['format'] = 'filtered_html';
+  /* Relationship: Webform Workflow Log: Node */
+  $handler->display->display_options['relationships']['nid']['id'] = 'nid';
+  $handler->display->display_options['relationships']['nid']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['nid']['field'] = 'nid';
+  $handler->display->display_options['relationships']['nid']['required'] = TRUE;
+  /* Relationship: Webform Workflow Log: Submission */
+  $handler->display->display_options['relationships']['sid']['id'] = 'sid';
+  $handler->display->display_options['relationships']['sid']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['sid']['field'] = 'sid';
+  $handler->display->display_options['relationships']['sid']['required'] = TRUE;
+  /* Relationship: Webform Workflow Log: Previous State */
+  $handler->display->display_options['relationships']['wsid_from']['id'] = 'wsid_from';
+  $handler->display->display_options['relationships']['wsid_from']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['wsid_from']['field'] = 'wsid_from';
+  /* Relationship: Webform Workflow Log: New State */
+  $handler->display->display_options['relationships']['wsid_to']['id'] = 'wsid_to';
+  $handler->display->display_options['relationships']['wsid_to']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['wsid_to']['field'] = 'wsid_to';
+  /* Relationship: Webform Workflow Log: User */
+  $handler->display->display_options['relationships']['uid']['id'] = 'uid';
+  $handler->display->display_options['relationships']['uid']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['uid']['field'] = 'uid';
+  /* Field: Webform Workflow Log: Date changed */
+  $handler->display->display_options['fields']['timestamp']['id'] = 'timestamp';
+  $handler->display->display_options['fields']['timestamp']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['fields']['timestamp']['field'] = 'timestamp';
+  $handler->display->display_options['fields']['timestamp']['date_format'] = 'short';
+  $handler->display->display_options['fields']['timestamp']['second_date_format'] = 'long';
+  /* Field: User: Name */
+  $handler->display->display_options['fields']['name']['id'] = 'name';
+  $handler->display->display_options['fields']['name']['table'] = 'users';
+  $handler->display->display_options['fields']['name']['field'] = 'name';
+  $handler->display->display_options['fields']['name']['relationship'] = 'uid';
+  $handler->display->display_options['fields']['name']['label'] = 'Changed by';
+  /* Field: Webform Workflow State: Label */
+  $handler->display->display_options['fields']['label_1']['id'] = 'label_1';
+  $handler->display->display_options['fields']['label_1']['table'] = 'webform_workflow_states';
+  $handler->display->display_options['fields']['label_1']['field'] = 'label';
+  $handler->display->display_options['fields']['label_1']['relationship'] = 'wsid_from';
+  $handler->display->display_options['fields']['label_1']['label'] = 'Old state';
+  $handler->display->display_options['fields']['label_1']['empty'] = 'None';
+  /* Field: Webform Workflow State: Label */
+  $handler->display->display_options['fields']['label']['id'] = 'label';
+  $handler->display->display_options['fields']['label']['table'] = 'webform_workflow_states';
+  $handler->display->display_options['fields']['label']['field'] = 'label';
+  $handler->display->display_options['fields']['label']['relationship'] = 'wsid_to';
+  $handler->display->display_options['fields']['label']['label'] = 'New state';
+  $handler->display->display_options['fields']['label']['empty'] = 'None';
+  /* Field: Webform Workflow Log: Log message */
+  $handler->display->display_options['fields']['message']['id'] = 'message';
+  $handler->display->display_options['fields']['message']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['fields']['message']['field'] = 'message';
+  /* Contextual filter: Content: Nid */
+  $handler->display->display_options['arguments']['nid']['id'] = 'nid';
+  $handler->display->display_options['arguments']['nid']['table'] = 'node';
+  $handler->display->display_options['arguments']['nid']['field'] = 'nid';
+  $handler->display->display_options['arguments']['nid']['relationship'] = 'nid';
+  $handler->display->display_options['arguments']['nid']['default_action'] = 'default';
+  $handler->display->display_options['arguments']['nid']['default_argument_type'] = 'raw';
+  $handler->display->display_options['arguments']['nid']['default_argument_options']['index'] = '0';
+  $handler->display->display_options['arguments']['nid']['summary']['number_of_records'] = '0';
+  $handler->display->display_options['arguments']['nid']['summary']['format'] = 'default_summary';
+  $handler->display->display_options['arguments']['nid']['summary_options']['items_per_page'] = '25';
+  $handler->display->display_options['arguments']['nid']['validate']['type'] = 'node';
+  $handler->display->display_options['arguments']['nid']['validate_options']['access'] = TRUE;
+  $handler->display->display_options['arguments']['nid']['validate']['fail'] = 'access denied';
+  /* Contextual filter: Webform submissions: Sid */
+  $handler->display->display_options['arguments']['sid']['id'] = 'sid';
+  $handler->display->display_options['arguments']['sid']['table'] = 'webform_submissions';
+  $handler->display->display_options['arguments']['sid']['field'] = 'sid';
+  $handler->display->display_options['arguments']['sid']['relationship'] = 'sid';
+  $handler->display->display_options['arguments']['sid']['default_action'] = 'default';
+  $handler->display->display_options['arguments']['sid']['default_argument_type'] = 'raw';
+  $handler->display->display_options['arguments']['sid']['default_argument_options']['index'] = '2';
+  $handler->display->display_options['arguments']['sid']['summary']['number_of_records'] = '0';
+  $handler->display->display_options['arguments']['sid']['summary']['format'] = 'default_summary';
+  $handler->display->display_options['arguments']['sid']['summary_options']['items_per_page'] = '25';
+  $handler->display->display_options['arguments']['sid']['validate']['type'] = 'numeric';
 
   /* Display: Embed */
   $handler = $view->new_display('embed', 'Embed', 'embed');

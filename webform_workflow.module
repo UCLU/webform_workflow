@@ -137,13 +137,15 @@ function webform_workflow_menu() {
     'access arguments' => array('update', 1),
   );
 
-  $items['node/%webform_menu/submission/%webform_menu_submission/state/%/confirmation'] = array(
-    'title' => 'Workflow State Change - Add message',
-    'page callback' => 'webform_workflow_confirmation',
-    'page arguments' => array(1, 3, 5),
-    'access callback' => 'webform_submission_access',
-    'access arguments' => array(1, 3, 'edit'),
-    'type' => MENU_CALLBACK,
+  $items['node/%webform_menu/submission/%webform_menu_submission/workflow-log'] = array(
+    'title' => 'Workflow Log',
+    'page callback' => 'webform_workflow_log_page',
+    'page arguments' => array(1, 3),
+    'file' => 'includes/webform_workflow.pages.inc',
+    'access callback' => 'webform_workflow_log_access',
+    'access arguments' => array(1, 3),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 3,
   );
 
   return $items;
@@ -157,6 +159,16 @@ function webform_workflow_menu_alter(&$items) {
   $items['node/%webform_menu/webform-results']['page arguments'] = array(1);
   $items['node/%webform_menu/webform-results']['file'] = 'includes/webform_workflow.pages.inc';
   $items['node/%webform_menu/webform-results']['module'] = 'webform_workflow';
+}
+
+/**
+ * Access callback for viewing the Workflow Log tab on a node or submission.
+ */
+function webform_workflow_log_access($node, $submission = NULL, $account = NULL) {
+  if (!node_access('update', $node, $account)) {
+    return FALSE;
+  }
+  return webform_submission_access($node, $submission, 'view');
 }
 
 /**

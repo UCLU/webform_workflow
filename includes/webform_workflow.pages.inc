@@ -19,3 +19,15 @@ function webform_workflow_submissions_list($node) {
   $view->override_path = current_path();
   return $view->preview('embed', array($node->nid));
 }
+
+/**
+ * Page callback to display a workflow transition log for a submission.
+ */
+function webform_workflow_log_page($node, $submission) {
+  if (!webform_workflow_is_enabled($node)) {
+    return MENU_NOT_FOUND;
+  }
+  $view = views_get_view('webform_workflow_log');
+  $view->override_path = current_path();
+  return $view->preview('embed', array($node->nid, $submission->sid));
+}
