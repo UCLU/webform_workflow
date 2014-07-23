@@ -111,3 +111,21 @@ function webform_workflow_views_data() {
 
   return $data;
 }
+
+/**
+ * Implements hook_views_data_alter().
+ */
+function webform_workflow_views_data_alter(&$data) {
+  $data['webform_submissions']['state'] = array(
+    'title' => t('Workflow State'),
+    'help' => t('The workflow state for this submission.'),
+    'relationship' => array(
+      'handler' => 'views_handler_relationship',
+      'base' => 'webform_workflow_states',
+      'base field' => 'wsid',
+      'relationship table' => 'webform_workflow_submissions',
+      'relationship field' => 'sid',
+      'label' => t('Workflow State'),
+    ),
+  );
+}
