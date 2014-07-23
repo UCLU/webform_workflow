@@ -117,18 +117,18 @@ function webform_workflow_views_data() {
  */
 function webform_workflow_views_data_alter(&$data) {
 
-  // Allow a relationship to be added between webform submissions and their
-  // workflow states.
-  $data['webform_submissions']['state'] = array(
-    'title' => t('Workflow State'),
-    'help' => t('The workflow state for this submission.'),
-    'relationship' => array(
-      'handler' => 'views_handler_relationship',
-      'base' => 'webform_workflow_states',
-      'base field' => 'wsid',
-      'relationship table' => 'webform_workflow_submissions',
-      'relationship field' => 'sid',
-      'label' => t('Workflow State'),
+  // Make workflow state data available for webform submissions.
+  $data['webform_workflow_submissions']['table']['join'] = array(
+    'webform_submissions' => array(
+      'left_field' => 'sid',
+      'field' => 'sid',
+    ),
+  );
+  $data['webform_workflow_states']['table']['join'] = array(
+    'webform_submissions' => array(
+      'left_field' => 'wsid',
+      'field' => 'wsid',
+      'left_table' => 'webform_workflow_submissions',
     ),
   );
 

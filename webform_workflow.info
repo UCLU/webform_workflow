@@ -8,6 +8,7 @@ dependencies[] = entityreference
 dependencies[] = inline_entity_form
 dependencies[] = webform (>= 7.x-4.x)
 dependencies[] = views
+dependencies[] = views_bulk_operations
 
 files[] = includes/webform_workflow_state.controller.inc
 files[] = includes/webform_workflow_state.inline_entity_form.inc

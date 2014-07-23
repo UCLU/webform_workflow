@@ -33,18 +33,23 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['pager']['options']['items_per_page'] = '25';
   $handler->display->display_options['style_plugin'] = 'table';
   $handler->display->display_options['style_options']['columns'] = array(
+    'views_bulk_operations' => 'views_bulk_operations',
     'sid' => 'sid',
-    'serial' => 'serial',
     'submitted' => 'submitted',
-    'label' => 'label',
     'name' => 'name',
     'remote_addr' => 'remote_addr',
+    'label' => 'label',
     'view_submission' => 'view_submission',
     'edit_submission' => 'view_submission',
     'delete_submission' => 'view_submission',
   );
-  $handler->display->display_options['style_options']['default'] = 'serial';
+  $handler->display->display_options['style_options']['default'] = 'sid';
   $handler->display->display_options['style_options']['info'] = array(
+    'views_bulk_operations' => array(
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
     'sid' => array(
       'sortable' => 1,
       'default_sort_order' => 'desc',
@@ -52,21 +57,7 @@ function webform_workflow_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
-    'serial' => array(
-      'sortable' => 1,
-      'default_sort_order' => 'desc',
-      'align' => '',
-      'separator' => '',
-      'empty_column' => 0,
-    ),
     'submitted' => array(
-      'sortable' => 1,
-      'default_sort_order' => 'desc',
-      'align' => '',
-      'separator' => '',
-      'empty_column' => 0,
-    ),
-    'label' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -81,6 +72,13 @@ function webform_workflow_views_default_views() {
       'empty_column' => 0,
     ),
     'remote_addr' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'label' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -116,30 +114,93 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['empty']['area_text_custom']['label'] = 'No results found';
   $handler->display->display_options['empty']['area_text_custom']['empty'] = TRUE;
   $handler->display->display_options['empty']['area_text_custom']['content'] = 'No results found';
-  /* Relationship: Webform submissions: Workflow State */
-  $handler->display->display_options['relationships']['state']['id'] = 'state';
-  $handler->display->display_options['relationships']['state']['table'] = 'webform_submissions';
-  $handler->display->display_options['relationships']['state']['field'] = 'state';
   /* Relationship: Webform submissions: User */
   $handler->display->display_options['relationships']['uid']['id'] = 'uid';
   $handler->display->display_options['relationships']['uid']['table'] = 'webform_submissions';
   $handler->display->display_options['relationships']['uid']['field'] = 'uid';
+  /* Field: Bulk operations: Webform submissions */
+  $handler->display->display_options['fields']['views_bulk_operations']['id'] = 'views_bulk_operations';
+  $handler->display->display_options['fields']['views_bulk_operations']['table'] = 'webform_submissions';
+  $handler->display->display_options['fields']['views_bulk_operations']['field'] = 'views_bulk_operations';
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['display_type'] = '0';
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['enable_select_all_pages'] = 1;
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['force_single'] = 0;
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['display_result'] = 1;
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_settings']['entity_load_capacity'] = '10';
+  $handler->display->display_options['fields']['views_bulk_operations']['vbo_operations'] = array(
+    'action::webform_workflow_change_submission_state' => array(
+      'selected' => 1,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
+    'action::views_bulk_operations_delete_item' => array(
+      'selected' => 0,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
+    'action::system_message_action' => array(
+      'selected' => 0,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
+    'action::views_bulk_operations_script_action' => array(
+      'selected' => 0,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
+    'action::views_bulk_operations_modify_action' => array(
+      'selected' => 0,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+      'settings' => array(
+        'show_all_tokens' => 1,
+        'display_values' => array(
+          '_all_' => '_all_',
+        ),
+      ),
+    ),
+    'action::views_bulk_operations_argument_selector_action' => array(
+      'selected' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+      'settings' => array(
+        'url' => '',
+      ),
+    ),
+    'action::system_goto_action' => array(
+      'selected' => 0,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
+    'action::system_send_email_action' => array(
+      'selected' => 0,
+      'use_queue' => 0,
+      'skip_confirmation' => 0,
+      'override_label' => 0,
+      'label' => '',
+    ),
+  );
   /* Field: Webform submissions: Sid */
   $handler->display->display_options['fields']['sid']['id'] = 'sid';
   $handler->display->display_options['fields']['sid']['table'] = 'webform_submissions';
   $handler->display->display_options['fields']['sid']['field'] = 'sid';
   $handler->display->display_options['fields']['sid']['label'] = 'SID';
-  $handler->display->display_options['fields']['sid']['exclude'] = TRUE;
+  $handler->display->display_options['fields']['sid']['alter']['make_link'] = TRUE;
   $handler->display->display_options['fields']['sid']['alter']['path'] = 'node/!1/submission/[sid]';
   $handler->display->display_options['fields']['sid']['separator'] = '';
-  /* Field: Webform submissions: Serial number */
-  $handler->display->display_options['fields']['serial']['id'] = 'serial';
-  $handler->display->display_options['fields']['serial']['table'] = 'webform_submissions';
-  $handler->display->display_options['fields']['serial']['field'] = 'serial';
-  $handler->display->display_options['fields']['serial']['label'] = '#';
-  $handler->display->display_options['fields']['serial']['alter']['make_link'] = TRUE;
-  $handler->display->display_options['fields']['serial']['alter']['path'] = 'node/!1/submission/[sid]';
-  $handler->display->display_options['fields']['serial']['separator'] = '';
   /* Field: Webform submissions: Submitted */
   $handler->display->display_options['fields']['submitted']['id'] = 'submitted';
   $handler->display->display_options['fields']['submitted']['table'] = 'webform_submissions';
@@ -161,7 +222,6 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['fields']['label']['id'] = 'label';
   $handler->display->display_options['fields']['label']['table'] = 'webform_workflow_states';
   $handler->display->display_options['fields']['label']['field'] = 'label';
-  $handler->display->display_options['fields']['label']['relationship'] = 'state';
   $handler->display->display_options['fields']['label']['label'] = 'State';
   /* Field: Webform submissions: View link */
   $handler->display->display_options['fields']['view_submission']['id'] = 'view_submission';
@@ -197,7 +257,7 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['arguments']['nid']['validate_options']['access_op'] = 'update';
 
   /* Display: Embed */
-  $handler = $view->new_display('embed', 'Embed', 'embed_1');
+  $handler = $view->new_display('embed', 'Embed', 'embed');
 
   $views[$view->name] = $view;
 

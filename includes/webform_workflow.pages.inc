@@ -17,5 +17,5 @@ function webform_workflow_submissions_list($node) {
   }
   $view = views_get_view('webform_workflow_submissions');
   $view->override_path = current_path();
-  return $view->preview('embed_1', array($node->nid));
+  return $view->preview('embed', array($node->nid));
 }

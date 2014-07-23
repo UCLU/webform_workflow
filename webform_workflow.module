@@ -34,6 +34,19 @@ function webform_workflow_entity_info() {
     ),
   );
 
+  // Expose webform submissions as very basic entities just so that Views Bulk
+  // Operations can be used.
+  $entities['webform_workflow_submission'] = array(
+    'label' => t('Webform Submission'),
+    'controller class' => 'EntityAPIController',
+    'base table' => 'webform_submissions',
+    'entity keys' => array(
+      'id' => 'sid',
+      'label' => 'sid',
+    ),
+    'module' => 'webform_workflow',
+  );
+
   return $entities;
 }
 
@@ -292,43 +305,47 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
  */
 function webform_workflow_submission_state_form_submit($form, &$form_state){
   $submission = $form_state['submission'];
-  $node = node_load($submission->nid);
   $new_state = webform_workflow_state_load($form_state['values']['new_state']);
   $message = $form_state['values']['message'];
-  webform_workflow_transition($node, $submission, $new_state, $message);
+  webform_workflow_transition($submission, $new_state, $message);
 }
 
 /**
  * Change the state of a submission.
  *
- * @param object $node
  * @param object $submission
  * @param object $new_state
  * @param string $message
  */
-function webform_workflow_transition($node, $submission, $new_state, $message = NULL) {
+function webform_workflow_transition($submission, $new_state, $message = NULL) {
   $current_state = $submission->webform_workflow_state;
 
   if ($current_state->wsid != $new_state->wsid) {
     $current_label = $current_state->label;
     $new_label = $new_state->label;
     $submission->webform_workflow_state = $new_state;
-    webform_submission_update($node, $submission);
+    webform_workflow_write_submission_state($submission);
     webform_workflow_log_transition($submission, $current_state, $new_state, $message);
-    drupal_set_message(t("Transitioned submission from @current_state to @new_state",
-      array('@current_state' => $current_label, '@new_state' => $new_label)));
+    drupal_set_message(t("Transitioned submission @sid from %current_state to %new_state", array(
+      '@sid' => $submission->sid,
+      '%current_state' => $current_label,
+      '%new_state' => $new_label,
+    )));
 
     webform_workflow_notify_users($submission);
 
     if (module_exists('rules')) {
+      $node = node_load($submission->nid);
       rules_invoke_event('webform_workflow_transition', $node, $current_state, $new_state);
     }
   }
   else {
-    drupal_set_message(t("Submission is already in the state %state", array('%state' => $new_state->label)), "error");
+    drupal_set_message(t('Submission @sid is already in the state %state', array(
+      '@sid' => $submission->sid,
+      '%state' => $new_state->label,
+    )), 'warning');
   }
 
-  drupal_goto("node/{$node->nid}/submission/{$submission->sid}");
 }
 
 /**
@@ -681,4 +698,101 @@ function webform_workflow_views_api() {
     'api' => 3,
     'path' => drupal_get_path('module', 'webform_workflow') . '/includes',
   );
+}
+
+/**
+ * Implements hook_action_info().
+ */
+function webform_workflow_action_info() {
+  return array(
+    'webform_workflow_change_submission_state' => array(
+      'type' => 'webform_workflow_submission',
+      'label' => t('Change workflow state'),
+      'configurable' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Action configuration form for changing the workflow state of a submission.
+ *
+ * @see webform_workflow_action_info()
+ */
+function webform_workflow_change_submission_state_form($context) {
+  $node = menu_get_object('webform_menu');
+  if (!$node || !webform_workflow_is_enabled($node)) {
+    drupal_set_message(t('Webform or workflow settings not found'), 'error', FALSE);
+    return array();
+  }
+  $states = webform_workflow_get_available_states($node);
+  if (!$states) {
+    drupal_set_message(t('No states found'), 'warning', FALSE);
+    return array();
+  }
+  global $user;
+  $is_admin = node_access('update', $node, $user);
+  $state_options = array();
+  foreach ($states as $state) {
+    if (array_intersect(array_keys($user->roles), $state->data['permissions']['to'])
+      || $is_admin) {
+      $state_options[$state->wsid] = $state->label;
+    }
+  }
+  if (!$state_options) {
+    drupal_set_message(t('No available states found'), 'warning', FALSE);
+    return array();
+  }
+  $form['new_state'] = array(
+    '#type' => 'select',
+    '#title' => t('New state'),
+    '#options' => $state_options,
+    '#required' => TRUE,
+  );
+  $form['message'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Log message'),
+    '#description' => t('Optionally, describe why you are making this change.'),
+  );
+  return $form;
+}
+
+/**
+ * Submit callback for the 'Change workflow state' action configuration form.
+ *
+ * @see webform_workflow_action_info()
+ */
+function webform_workflow_change_submission_state_submit($form, &$form_state) {
+  return array(
+    'new_state' => webform_workflow_state_load($form_state['values']['new_state']),
+    'message' => $form_state['values']['message'] ? $form_state['values']['message'] : NULL,
+  );
+}
+
+/**
+ * Action callback for changing the workflow state of a submission.
+ *
+ * @param object $submission
+ *   The submission, loaded via the Entity API as a
+ *   'webform_workflow_submission' entity.
+ * @param array $context
+ *   Contextual information provided by the action configuration form. This must
+ *   include the keys 'new_state' and 'message'.
+ *
+ * @see webform_workflow_action_info()
+ */
+function webform_workflow_change_submission_state($submission, $context) {
+  // Reload the submission as a proper Webform submission object.
+  module_load_include('inc', 'webform', 'includes/webform.submissions');
+  $submission = webform_get_submission($submission->nid, $submission->sid);
+
+  $node = node_load($submission->nid);
+  $is_admin = node_access('update', $node);
+
+  $current_state = $submission->webform_workflow_state;
+  $transition_from_current = $is_admin || array_intersect(array_keys($user->roles), $current_state->data['permissions']['from']);
+  if (!$transition_from_current) {
+    return;
+  }
+
+  webform_workflow_transition($submission, $context['new_state'], $context['message']);
 }
