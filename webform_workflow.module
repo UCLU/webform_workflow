@@ -222,8 +222,16 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     }
     if (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])
         || $is_admin) {
-      $key = $seen_current ? t('Later states') : t('Earlier states');
-      $new_state_options[$key][$new_state->wsid] = $new_state->label;
+      // Group the state options into 'Earlier' and 'Later'. This assumes that
+      // the Entity API has provided the available states correctly sorted (this
+      // does appear to work with Inline Entity Form).
+      if ($state->wsid) {
+        $key = $seen_current ? t('Later states') : t('Earlier states');
+        $new_state_options[$key][$new_state->wsid] = $new_state->label;
+      }
+      else {
+        $new_state_options[$new_state->wsid] = $new_state->label;
+      }
     }
   }
 
