@@ -98,3 +98,93 @@ function webform_workflow_config_form_submit($form, &$form_state) {
 
   node_save($node);
 }
+
+/**
+ * Form for changing the state of an existing submission.
+ */
+function webform_workflow_submission_state_form($form, &$form_state, $submission) {
+  global $user;
+
+  form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
+
+  $node = node_load($submission->nid);
+  $is_admin = node_access('update', $node);
+
+  $state = $submission->webform_workflow_state;
+  $transition_from_current = $is_admin || array_intersect(array_keys($user->roles), $state->data['permissions']['from']);
+  if (!$transition_from_current) {
+    return;
+  }
+
+  $new_state_options = array();
+  $seen_current = FALSE;
+  $available_states = webform_workflow_get_available_states($node);
+  foreach ($available_states as $new_state) {
+    if ($new_state->wsid == $state->wsid) {
+      $seen_current = TRUE;
+      continue;
+    }
+    if (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])
+        || $is_admin) {
+      // Group the state options into 'Earlier' and 'Later'. This assumes that
+      // the Entity API has provided the available states correctly sorted (this
+      // does appear to work with Inline Entity Form).
+      if ($state->wsid) {
+        $key = $seen_current ? t('Later states') : t('Earlier states');
+        $new_state_options[$key][$new_state->wsid] = $new_state->label;
+      }
+      else {
+        $new_state_options[$new_state->wsid] = $new_state->label;
+      }
+    }
+  }
+
+  $form['current_state'] = array(
+    '#type' => 'item',
+    '#title' => t('Current state'),
+    '#markup' => check_plain($state->label),
+  );
+
+  if (!$new_state_options) {
+    return $form;
+  }
+
+  $form_state['submission'] = $submission;
+
+  $form['new_state'] = array(
+    '#title' => t('New state'),
+    '#type' => 'select',
+    '#options' => $new_state_options,
+    '#required' => TRUE,
+  );
+  $new_state_trigger = array(
+    ':input[name="new_state"]' => array('!value' => ''),
+  );
+  $form['message'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Log message'),
+    '#description' => t('Optionally, describe why you are making this change.'),
+    '#states' => array('visible' => $new_state_trigger),
+  );
+  $form['buttons'] = array(
+    '#type' => 'actions',
+    '#states' => array('visible' => $new_state_trigger),
+  );
+  $form['buttons']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Change state'),
+  );
+
+  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';
+  return $form;
+}
+
+/**
+ * Submit callback for changing the state of an existing submission.
+ */
+function webform_workflow_submission_state_form_submit($form, &$form_state){
+  $submission = $form_state['submission'];
+  $new_state = webform_workflow_state_load($form_state['values']['new_state']);
+  $message = $form_state['values']['message'];
+  webform_workflow_transition($submission, $new_state, $message);
+}
