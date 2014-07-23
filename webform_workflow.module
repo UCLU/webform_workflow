@@ -165,6 +165,9 @@ function webform_workflow_menu_alter(&$items) {
  * Access callback for viewing the Workflow Log tab on a node or submission.
  */
 function webform_workflow_log_access($node, $submission = NULL, $account = NULL) {
+  if (!webform_workflow_is_enabled($node)) {
+    return FALSE;
+  }
   if (!node_access('update', $node, $account)) {
     return FALSE;
   }
@@ -461,7 +464,7 @@ function webform_workflow_form_node_form_alter(&$form, &$form_state) {
  * @return bool
  */
 function webform_workflow_is_enabled($node) {
-  return !empty($node->webform_workflow);
+  return isset($node->webform_workflow) && $node->webform_workflow->workflow;
 }
 
 /**
@@ -676,7 +679,8 @@ function webform_workflow_change_submission_state_form($context) {
   $form['message'] = array(
     '#type' => 'textfield',
     '#title' => t('Log message'),
-    '#description' => t('Optionally, describe why you are making this change.'),
+    '#description' => t('Describe why you are making this change.'),
+    '#required' => !empty($node->webform_workflow->data['require_log']),
   );
   return $form;
 }

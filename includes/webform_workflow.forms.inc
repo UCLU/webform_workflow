@@ -14,19 +14,22 @@ function webform_workflow_config_form($form, &$form_state, $node) {
 
   $form['enable_workflow'] = array(
     '#type' => 'checkbox',
-    '#title' => 'Enable workflow',
+    '#title' => t('Enable workflow'),
+    '#description' => t('Enable workflow for this form.'),
     '#default_value' => webform_workflow_is_enabled($node),
-  );
-
-  $enable_workflow_trigger = array(
-    'input[name="enable_workflow"]' => array('checked' => TRUE),
   );
 
   $form['states'] = array(
     '#type' => 'container',
-    '#states' => array('visible' => $enable_workflow_trigger),
   );
   field_attach_form('node', $node, $form['states'], $form_state, NULL, array('field_name' => 'webform_workflow_states'));
+
+  $form['require_log'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Require a log message'),
+    '#description' => t('Set whether users must enter a log message whenever they change the state of a submission.'),
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['require_log']),
+  );
 
   $emails = isset($node->webform_workflow) ? $node->webform_workflow->data['emails'] : webform_workflow_get_default_email();
 
@@ -36,7 +39,6 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#tree' => TRUE,
-    '#states' => array('visible' => $enable_workflow_trigger),
   );
   $form['emails']['subject'] = array(
     '#type' => 'textfield',
@@ -81,13 +83,13 @@ function webform_workflow_config_form_validate($form, &$form_state) {
  */
 function webform_workflow_config_form_submit($form, &$form_state) {
   $node = $form_state['node'];
-  if ($form_state['values']['enable_workflow']) {
-    field_attach_submit('node', $node, $form['states'], $form_state);
-  }
+  field_attach_submit('node', $node, $form['states'], $form_state);
 
   $data_array = array(
     'emails' => $form_state['values']['emails'],
+    'require_log' => $form_state['values']['require_log'],
   );
+
   db_merge('webform_workflow')
     ->key(array('nid' => $node->nid))
     ->fields(array(
@@ -163,8 +165,9 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $form['message'] = array(
     '#type' => 'textfield',
     '#title' => t('Log message'),
-    '#description' => t('Optionally, describe why you are making this change.'),
+    '#description' => t('Describe why you are making this change.'),
     '#states' => array('visible' => $new_state_trigger),
+    '#required' => !empty($node->webform_workflow->data['require_log']),
   );
   $form['buttons'] = array(
     '#type' => 'actions',
