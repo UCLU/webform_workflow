@@ -116,6 +116,9 @@ function webform_workflow_views_data() {
  * Implements hook_views_data_alter().
  */
 function webform_workflow_views_data_alter(&$data) {
+
+  // Allow a relationship to be added between webform submissions and their
+  // workflow states.
   $data['webform_submissions']['state'] = array(
     'title' => t('Workflow State'),
     'help' => t('The workflow state for this submission.'),
@@ -128,4 +131,5 @@ function webform_workflow_views_data_alter(&$data) {
       'label' => t('Workflow State'),
     ),
   );
+
 }

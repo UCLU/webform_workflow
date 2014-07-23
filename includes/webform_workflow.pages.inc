@@ -15,8 +15,7 @@ function webform_workflow_submissions_list($node) {
     module_load_include('inc', 'webform', 'includes/webform.report');
     return webform_results_submissions($node, FALSE, 50);
   }
-  $view = views_embed_view('webform_workflow_submissions', 'embed_1', $node->nid);
-  return array(
-    '#markup' => $view,
-  );
+  $view = views_get_view('webform_workflow_submissions');
+  $view->override_path = current_path();
+  return $view->preview('embed_1', array($node->nid));
 }
