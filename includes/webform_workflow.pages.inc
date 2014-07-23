@@ -27,6 +27,9 @@ function webform_workflow_log_page($node, $submission) {
   if (!webform_workflow_is_enabled($node)) {
     return MENU_NOT_FOUND;
   }
+  drupal_set_title(t('Submission #@sid: workflow log', array(
+    '@sid' => $submission->sid,
+  )));
   $view = views_get_view('webform_workflow_log');
   $view->override_path = current_path();
   return $view->preview('embed', array($node->nid, $submission->sid));

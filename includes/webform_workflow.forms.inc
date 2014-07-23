@@ -121,6 +121,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $new_state_options = array();
   $seen_current = FALSE;
   $available_states = webform_workflow_get_available_states($node);
+  $group = ($state->wsid) && count($available_states) > 1;
   foreach ($available_states as $new_state) {
     if ($new_state->wsid == $state->wsid) {
       $seen_current = TRUE;
@@ -131,7 +132,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
       // Group the state options into 'Earlier' and 'Later'. This assumes that
       // the Entity API has provided the available states correctly sorted (this
       // does appear to work with Inline Entity Form).
-      if ($state->wsid) {
+      if ($group) {
         $key = $seen_current ? t('Later states') : t('Earlier states');
         $new_state_options[$key][$new_state->wsid] = $new_state->label;
       }
@@ -141,10 +142,12 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     }
   }
 
+  $state_class = drupal_html_class('webform-workflow-state-' . $state->label);
+
   $form['current_state'] = array(
     '#type' => 'item',
     '#title' => t('Current state'),
-    '#markup' => check_plain($state->label),
+    '#markup' => '<span class="webform-workflow-current-state ' . $state_class . '">' . check_plain($state->label) . '</span>',
   );
 
   if (!$new_state_options) {
@@ -154,7 +157,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $form_state['submission'] = $submission;
 
   $form['new_state'] = array(
-    '#title' => t('New state'),
+    '#title' => t('Change state'),
     '#type' => 'select',
     '#options' => $new_state_options,
     '#required' => TRUE,
@@ -176,6 +179,12 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $form['buttons']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Change state'),
+  );
+  $destination = drupal_get_destination();
+  $form['buttons']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => t('Cancel'),
+    '#href' => current_path(),
   );
 
   $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';

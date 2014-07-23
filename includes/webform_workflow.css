@@ -8,8 +8,20 @@
   margin: 0 10px;
 }
 
+#webform-workflow-submission-state-form .form-item,
+#webform-workflow-submission-state-form .form-actions {
+  margin: 0 10px 0 0;
+  padding: 5px 0;
+}
+
 #webform-workflow-submission-state-form .form-type-item,
 #webform-workflow-submission-state-form .form-type-select {
   display: inline-block;
-  margin-right: 10px;
+  margin: 0 10px 2px 0;
+  padding: 0;
+  vertical-align: top;
+}
+
+.webform-workflow-current-state {
+  font-size: larger;
 }

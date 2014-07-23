@@ -124,7 +124,7 @@ function webform_workflow_menu() {
     'access arguments' => array('update', 1),
     'file' => 'includes/webform_workflow.forms.inc',
     'type' => MENU_LOCAL_TASK,
-    'weight' => 5,
+    'weight' => 4,
   );
 
   $items['node/%webform_menu/webform/workflow/state/%webform_workflow_state'] = array(
@@ -165,13 +165,9 @@ function webform_workflow_menu_alter(&$items) {
  * Access callback for viewing the Workflow Log tab on a node or submission.
  */
 function webform_workflow_log_access($node, $submission = NULL, $account = NULL) {
-  if (!webform_workflow_is_enabled($node)) {
-    return FALSE;
-  }
-  if (!node_access('update', $node, $account)) {
-    return FALSE;
-  }
-  return webform_submission_access($node, $submission, 'view');
+  return webform_workflow_is_enabled($node)
+    && webform_results_access($node)
+    && webform_submission_access($node, $submission, 'view');
 }
 
 /**
@@ -198,11 +194,11 @@ function webform_workflow_get_user_text($notify_users) {
 /**
  * Implements hook_webform_submission_render_alter().
  *
- * Alter the display of a webform.
+ * Alter the display of a webform submission.
  */
 function webform_workflow_webform_submission_render_alter(&$renderable) {
   $node = $renderable['#node'];
-  if (!webform_workflow_is_enabled($node)) {
+  if (!webform_workflow_is_enabled($node) || !webform_results_access($node)) {
     return;
   }
 
@@ -211,7 +207,7 @@ function webform_workflow_webform_submission_render_alter(&$renderable) {
 
   $renderable['workflow'] = array(
     '#type' => 'fieldset',
-    '#title' => 'Workflow',
+    '#title' => t('Workflow'),
     '#weight' => -1,
   );
 
@@ -724,4 +720,23 @@ function webform_workflow_change_submission_state($submission, $context) {
   }
 
   webform_workflow_transition($submission, $context['new_state'], $context['message']);
+}
+
+/**
+ * Implements hook_webform_results_download_submission_information_info().
+ */
+function webform_workflow_webform_results_download_submission_information_info() {
+  return array('state' => t('Workflow State'));
+}
+
+/**
+ * Implements hook_webform_results_download_submission_information_data().
+ */
+function webform_workflow_webform_results_download_submission_information_data($token, $submission, array $options, $serial_start, $row_count) {
+  if ($token == 'state') {
+    $node = node_load($submission->nid);
+    if (webform_workflow_is_enabled($node)) {
+      return $submission->webform_workflow_state->label;
+    }
+  }
 }
