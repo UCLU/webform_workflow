@@ -86,7 +86,9 @@ function webform_workflow_state_is_locked($state) {
  * URI callback for a workflow state.
  */
 function webform_workflow_state_uri($state) {
-  return 'node/' . $state->nid . '/webform/workflow/state/' . $state->wsid;
+  return array(
+    'path' => 'node/' . $state->nid . '/webform/workflow/state/' . $state->wsid,
+  );
 }
 
 /**
