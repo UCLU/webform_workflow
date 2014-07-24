@@ -385,6 +385,16 @@ function webform_workflow_entity_delete($entity, $type) {
       ->condition('wsid_from', $entity->wsid)
       ->execute();
   }
+  // When a webform_workflow_submission entity is deleted, make sure its related
+  // submission is deleted properly.
+  elseif ($type === 'webform_workflow_submission') {
+    $node = node_load($entity->nid);
+    module_load_include('inc', 'webform', 'includes/webform.submissions');
+    $submission = webform_get_submission($entity->nid, $entity->sid);
+    if ($submission) {
+      webform_submission_delete($node, $submission);
+    }
+  }
 }
 
 /**
