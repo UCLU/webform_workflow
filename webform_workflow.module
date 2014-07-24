@@ -96,7 +96,13 @@ function webform_workflow_state_is_locked($state) {
 }
 
 /**
- * URI callback for a workflow state.
+ * Entity URI callback for a workflow state.
+ *
+ * @param object $state
+ *   The workflow state entity object.
+ *
+ * @return array
+ *   An array containing a path in the key 'path'.
  */
 function webform_workflow_state_uri($state) {
   return array(
@@ -106,6 +112,12 @@ function webform_workflow_state_uri($state) {
 
 /**
  * Load a single workflow state.
+ *
+ * @param int $wsid
+ *   The workflow state ID.
+ *
+ * @return object|FALSE
+ *   A workflow state entity object, or FALSE if the $wsid was not found.
  */
 function webform_workflow_state_load($wsid) {
   $states = entity_load('webform_workflow_state', array($wsid));
@@ -162,33 +174,21 @@ function webform_workflow_menu_alter(&$items) {
 }
 
 /**
- * Implements template_preprocess_webform_submission_page().
+ * Implements hook_webform_submission_render_alter().
+ *
+ * Alter the display of a webform submission.
  */
-function webform_workflow_preprocess_webform_submission_page(&$variables) {
-  $submission = $variables['submission'];
-  if (webform_workflow_is_enabled($variables['node']) && !$submission->is_draft && webform_results_access($variables['node'])) {
-    $variables['theme_hook_suggestions'][] = 'webform_submission_page__workflow';
-    module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.forms');
-    $workflow_form = drupal_get_form('webform_workflow_submission_state_form', $submission);
-    $variables['submission_workflow'] = drupal_render($workflow_form);
+function webform_workflow_webform_submission_render_alter(&$renderable) {
+  $node = $renderable['#node'];
+  $submission = $renderable['#submission'];
+  if (!webform_workflow_is_enabled($node) || $submission->is_draft || !webform_results_access($node)) {
+    return;
   }
-}
 
-/**
- * Implements hook_theme_registry_alter().
- */
-function webform_workflow_theme_registry_alter(&$theme_registry) {
-  // Modify the theme registry so that the template file
-  // webform-submission-page--workflow.tpl.php will get picked up.
-  $module_path = drupal_get_path('module', 'webform_workflow');
-  $base_hook = 'webform_submission_page';
-  $new_hook = $base_hook . '__workflow';
-  $theme_registry[$new_hook] = $theme_registry[$base_hook];
-  $theme_registry[$new_hook]['base hook'] = $base_hook;
-  $theme_registry[$new_hook]['theme path'] = $module_path;
-  $theme_registry[$new_hook]['template'] = 'webform-submission-page--workflow';
-  $theme_registry[$new_hook]['path'] = $module_path . '/templates';
-  $theme_registry[$new_hook]['variables']['submission_workflow'] = NULL;
+  $state = $submission->webform_workflow_state;
+  module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.forms');
+  $renderable['workflow'] = drupal_get_form('webform_workflow_submission_state_form', $submission);
+  $renderable['workflow']['#weight'] = -1;
 }
 
 /**
@@ -228,15 +228,27 @@ function webform_workflow_get_user_text($notify_users) {
  * Respond to the loading of Webform submissions.
  */
 function webform_workflow_webform_submission_load(&$submissions) {
+  // Find the workflow state IDs associated with these submissions.
+  $wsids = db_select('webform_workflow_submissions', 'wws')
+    ->fields('wws', array('sid', 'wsid'))
+    ->condition('wws.sid', array_keys($submissions), 'IN')
+    ->execute()
+    ->fetchAllKeyed();
+  $unknown_state = entity_create('webform_workflow_state', array(
+    'label' => t('None'),
+  ));
+  $states = $wsids ? entity_load('webform_workflow_state', $wsids) : array();
   foreach ($submissions as $sid => $submission) {
     $node = node_load($submission->nid);
-    if (webform_workflow_is_enabled($node)) {
-      $wsid = webform_workflow_get_submission_state($sid);
-      $state = $wsid ? webform_workflow_state_load($wsid) : FALSE;
-      $submission->webform_workflow_state = $state ? $state : entity_create('webform_workflow_state', array(
-        'nid' => $node->nid,
-        'label' => t('None'),
-      ));
+    if (!webform_workflow_is_enabled($node)) {
+      continue;
+    }
+    if (isset($wsids[$sid]) && isset($states[$wsids[$sid]])) {
+      $submission->webform_workflow_state = $states[$wsids[$sid]];
+    }
+    else {
+      $submission->webform_workflow_state = clone $unknown_state;
+      $submission->webform_workflow_state->nid = $submission->nid;
     }
   }
 }
@@ -348,12 +360,14 @@ function webform_workflow_webform_submission_update($node, $submission) {
 /**
  * Implements hook_webform_submission_delete().
  *
- * Delete the submission record.
+ * Act after a submission has been deleted.
  */
 function webform_workflow_webform_submission_delete($node, $submission) {
-  // delete all submission data, even if workflow is no longer enabled
-  webform_workflow_delete_submission_state($submission->sid);
-
+  // Delete all data related to the submission, even if workflow is no longer
+  // enabled.
+  db_delete('webform_workflow_submissions')
+    ->condition('sid', $sid)
+    ->execute();
   db_delete('webform_workflow_log')
     ->condition('sid', $submission->sid)
     ->execute();
@@ -505,47 +519,6 @@ function webform_workflow_get_available_states($node) {
     $states[$key] = $state_wrapper->value();
   }
   return $states;
-}
-
-/**
- * Ajax callback for the add another state button.
- */
-function webform_workflow_add_more_callback($form, $form_state) {
-  return $form['states'];
-}
-
-/**
- * Submission callback for the add another state button.
- */
-function webform_workflow_add_another_submit($form, &$form_state) {
-  $form_state['num_states']++;
-  $form_state['rebuild'] = TRUE;
-}
-
-/**
- * Get the currently assigned workflow state to a submission.
- *
- * @return mixed
- *   The state ID (wsid), or FALSE if there is no state assigned.
- */
-function webform_workflow_get_submission_state($sid) {
-  return db_select('webform_workflow_submissions', 'wws')
-    ->fields('wws', array('wsid'))
-    ->condition('wws.sid', $sid)
-    ->execute()
-    ->fetchField();
-}
-
-/**
- * Delete a submission state from the database.
- *
- * @param int $sid
- *   The workflow state id to delete.
- */
-function webform_workflow_delete_submission_state($sid) {
-  return db_delete('webform_workflow_submissions')
-    ->condition('sid', $sid)
-    ->execute();
 }
 
 /**
