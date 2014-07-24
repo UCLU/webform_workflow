@@ -11,7 +11,7 @@
         select_element.find('option').each(function() {
           var option = $(this),
             color = option.attr('value'),
-            label = option.text()
+            label = option.text(),
             list_option = $('<li>')
               .addClass('webform-workflow-state-color-' + color)
               .data('color', color)
@@ -22,15 +22,13 @@
           list.append(list_option);
         });
         select_element.hide().after(list);
-        list_items = $('.webform-workflow-state-color-options li');
-        list_items.each(function () {
+        var list_items = $('.webform-workflow-state-color-options li');
+        list_items.click(function () {
           var list_item = $(this);
-          list_item.click(function () {
-            list_items.removeClass('selected');
-            list_item.addClass('selected');
-            select_element.val(list_item.data('color'));
-            return false;
-          })
+          list_items.removeClass('selected');
+          list_item.addClass('selected');
+          select_element.val(list_item.data('color'));
+          return false;
         });
       });
     }
