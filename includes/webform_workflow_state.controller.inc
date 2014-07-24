@@ -14,8 +14,8 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
       'wsid' => NULL,
       'nid' => NULL,
       'label' => NULL,
+      'color' => NULL,
       'data' => $this->getDataDefaults(),
-      'weight' => 0,
     );
     // Overwrite default values with supplied values.
     $values = array_merge($default_values, $values);

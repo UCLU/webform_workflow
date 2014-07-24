@@ -140,6 +140,11 @@ function webform_workflow_views_data_alter(&$data) {
     ),
   );
 
+  // Alter the field handler for displaying a state label.
+  if (isset($data['webform_workflow_states'])) {
+    $data['webform_workflow_states']['label']['field']['handler'] = 'webform_workflow_views_handler_field_state';
+  }
+
   // Provide an improved 'Draft' field handler.
   $data['webform_submissions']['is_draft_bool'] = array(
     'title' => t('Draft'),

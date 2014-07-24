@@ -51,6 +51,20 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#required' => TRUE,
   );
 
+  $form['color'] = array(
+    '#type' => 'select',
+    '#title' => t('Color'),
+    '#default_value' => $state->color,
+    '#empty_value' => '',
+    '#options' => webform_workflow_state_color_options_list(),
+    '#attached' => array(
+      'js' => array(
+        drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js',
+      ),
+    ),
+    '#attributes' => array('class' => array('webform-workflow-state-color-list')),
+  );
+
   $form['data'] = array(
     '#tree' => TRUE,
   );

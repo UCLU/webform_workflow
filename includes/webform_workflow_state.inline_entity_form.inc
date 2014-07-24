@@ -34,15 +34,19 @@ class WebformWorkflowStateInlineEntityFormController extends EntityInlineEntityF
   }
 
   /**
-   * Overrides EntityInlineEntityFormController::defaultFields().
+   * Overrides EntityInlineEntityFormController::tableFields().
    */
-  public function defaultFields($bundles) {
+  public function tableFields($bundles) {
     $fields = array();
     $fields['label'] = array(
       'type' => 'property',
       'label' => t('Name'),
-      'visible' => TRUE,
       'weight' => 1,
+    );
+    $fields['color'] = array(
+      'type' => 'property',
+      'label' => t('Color'),
+      'weight' => 2,
     );
     return $fields;
   }

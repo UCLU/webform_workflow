@@ -31,12 +31,12 @@ function webform_workflow_property_info() {
       'schema field' => 'label',
       'required' => TRUE,
     ),
-    'weight' => array(
-      'label' => t('Weight'),
-      'description' => t('The weight of the state'),
-      'type' => 'integer',
-      'schema field' => 'weight',
-      'required' => TRUE,
+    'color' => array(
+      'description' => t('The state color'),
+      'type' => 'text',
+      'schema field' => 'color',
+      'required' => FALSE,
+      'options list' => 'webform_workflow_state_color_options_list',
     ),
   );
   return $info;

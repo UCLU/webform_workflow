@@ -142,8 +142,6 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     }
   }
 
-  $state_class = drupal_html_class('webform-workflow-state-' . $state->label);
-
   $form['workflow'] = array(
     '#type' => 'fieldset',
     '#title' => t('Workflow'),
@@ -152,7 +150,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $form['workflow']['current_state'] = array(
     '#type' => 'item',
     '#title' => t('Current state'),
-    '#markup' => '<span class="webform-workflow-current-state ' . $state_class . '">' . check_plain($state->label) . '</span>',
+    '#markup' => theme('webform_workflow_state', array('state' => $state)),
   );
 
   $log = db_select('webform_workflow_log', 'wwl')
@@ -164,11 +162,25 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     ->fetch();
   if ($log) {
     $account = $log->uid ? user_load($log->uid) : FALSE;
-    $log_string = t('@time: %old &rarr; %new (changed by !user)', array(
+    $log_old_state = webform_workflow_state_load($log->wsid_from);
+    if (!$log_old_state) {
+      $log_old_state = (object) array(
+        'label' => $log->wsid_from_label,
+        'color' => NULL,
+      );
+    }
+    $log_new_state = webform_workflow_state_load($log->wsid_to);
+    if (!$log_new_state) {
+      $log_new_state = (object) array(
+        'label' => $log->wsid_to_label,
+        'color' => NULL,
+      );
+    }
+    $log_string = t('@time: !old &rarr; !new (changed by !user)', array(
       '@time' => format_date($log->timestamp, 'short'),
       '!user' => theme('username', array('account' => $account)),
-      '%old' => $log->wsid_from_label,
-      '%new' => $log->wsid_to_label,
+      '!old' => theme('webform_workflow_state', array('state' => $log_old_state)),
+      '!new' => theme('webform_workflow_state', array('state' => $log_new_state)),
     ));
     if ($log->message) {
       $log_string .= '<blockquote class="webform-workflow-log-message">'
@@ -222,8 +234,6 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#title' => t('Cancel'),
     '#href' => current_path(),
   );
-
-  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';
   return $form;
 }
 

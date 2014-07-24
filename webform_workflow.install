@@ -28,6 +28,12 @@ function webform_workflow_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'color' => array(
+        'description' => 'A color to display for this state.',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
       'data' => array(
         'description' => 'Any extra data attached to the state. E.g. permissions',
         'type' => 'blob',
@@ -184,5 +190,19 @@ function webform_workflow_install() {
       $instance['bundle'] = $bundle;
       field_create_instance($instance);
     }
+  }
+}
+
+/**
+ * Add the 'color' field.
+ */
+function webform_workflow_update_7001() {
+  if (!db_field_exists('webform_workflow_states', 'color')) {
+    db_add_field('webform_workflow_states', 'color', array(
+      'description' => 'A color to display for this state.',
+      'type' => 'varchar',
+      'length' => '255',
+      'not null' => FALSE,
+    ));
   }
 }
