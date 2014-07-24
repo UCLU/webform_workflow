@@ -144,7 +144,12 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
 
   $state_class = drupal_html_class('webform-workflow-state-' . $state->label);
 
-  $form['current_state'] = array(
+  $form['workflow'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Workflow'),
+  );
+
+  $form['workflow']['current_state'] = array(
     '#type' => 'item',
     '#title' => t('Current state'),
     '#markup' => '<span class="webform-workflow-current-state ' . $state_class . '">' . check_plain($state->label) . '</span>',
@@ -169,7 +174,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
       $log_string .= '<blockquote class="webform-workflow-log-message">'
         . check_plain($log->message) . '</blockquote>';
     }
-    $form['log'] = array(
+    $form['workflow']['log'] = array(
       '#type' => 'item',
       '#title' => t('Last state change'),
       '#markup' => $log_string,
@@ -183,7 +188,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
 
   $form_state['submission'] = $submission;
 
-  $form['new_state'] = array(
+  $form['workflow']['new_state'] = array(
     '#title' => t('New state'),
     '#type' => 'select',
     '#options' => $new_state_options,
@@ -194,7 +199,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $new_state_trigger = array(
     ':input[name="new_state"]' => array('!value' => ''),
   );
-  $form['message'] = array(
+  $form['workflow']['message'] = array(
     '#type' => 'textfield',
     '#title' => t('Log message'),
     '#description' => t('Describe why you are making this change.'),
@@ -202,17 +207,17 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#required' => !empty($node->webform_workflow->data['require_log']),
     '#weight' => 30,
   );
-  $form['buttons'] = array(
+  $form['workflow']['buttons'] = array(
     '#type' => 'actions',
     '#states' => array('visible' => $new_state_trigger),
     '#weight' => 40,
   );
-  $form['buttons']['submit'] = array(
+  $form['workflow']['buttons']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Change state'),
   );
   $destination = drupal_get_destination();
-  $form['buttons']['cancel'] = array(
+  $form['workflow']['buttons']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
     '#href' => current_path(),

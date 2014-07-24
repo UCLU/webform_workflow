@@ -10,6 +10,10 @@
 
 
 /* The form used for changing the state of a submission */
+#webform-workflow-submission-state-form {
+  float: right;
+  width: 50%;
+}
 #webform-workflow-submission-state-form .form-item,
 #webform-workflow-submission-state-form .form-actions {
   margin: 0 10px 0 0;
