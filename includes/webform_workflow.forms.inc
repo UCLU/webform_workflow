@@ -150,6 +150,33 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#markup' => '<span class="webform-workflow-current-state ' . $state_class . '">' . check_plain($state->label) . '</span>',
   );
 
+  $log = db_select('webform_workflow_log', 'wwl')
+    ->fields('wwl')
+    ->condition('sid', $submission->sid)
+    ->orderBy('id', 'DESC')
+    ->range(0, 1)
+    ->execute()
+    ->fetch();
+  if ($log) {
+    $account = $log->uid ? user_load($log->uid) : FALSE;
+    $log_string = t('@time: %old &rarr; %new (changed by !user)', array(
+      '@time' => format_date($log->timestamp, 'short'),
+      '!user' => theme('username', array('account' => $account)),
+      '%old' => $log->wsid_from_label,
+      '%new' => $log->wsid_to_label,
+    ));
+    if ($log->message) {
+      $log_string .= '<blockquote class="webform-workflow-log-message">'
+        . check_plain($log->message) . '</blockquote>';
+    }
+    $form['log'] = array(
+      '#type' => 'item',
+      '#title' => t('Last state change'),
+      '#markup' => $log_string,
+      '#weight' => 50,
+    );
+  }
+
   if (!$new_state_options) {
     return $form;
   }
@@ -157,10 +184,12 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $form_state['submission'] = $submission;
 
   $form['new_state'] = array(
-    '#title' => t('Change state'),
+    '#title' => t('New state'),
     '#type' => 'select',
     '#options' => $new_state_options,
     '#required' => TRUE,
+    '#title_display' => 'before',
+    '#weight' => 20,
   );
   $new_state_trigger = array(
     ':input[name="new_state"]' => array('!value' => ''),
@@ -171,10 +200,12 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#description' => t('Describe why you are making this change.'),
     '#states' => array('visible' => $new_state_trigger),
     '#required' => !empty($node->webform_workflow->data['require_log']),
+    '#weight' => 30,
   );
   $form['buttons'] = array(
     '#type' => 'actions',
     '#states' => array('visible' => $new_state_trigger),
+    '#weight' => 40,
   );
   $form['buttons']['submit'] = array(
     '#type' => 'submit',

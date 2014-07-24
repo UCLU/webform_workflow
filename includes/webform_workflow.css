@@ -8,20 +8,26 @@
   margin: 0 10px;
 }
 
+
+/* The form used for changing the state of a submission */
 #webform-workflow-submission-state-form .form-item,
 #webform-workflow-submission-state-form .form-actions {
   margin: 0 10px 0 0;
   padding: 5px 0;
 }
-
-#webform-workflow-submission-state-form .form-type-item,
-#webform-workflow-submission-state-form .form-type-select {
+#webform-workflow-submission-state-form #edit-current-state,
+#webform-workflow-submission-state-form .form-item-new-state {
   display: inline-block;
-  margin: 0 10px 2px 0;
+  margin: 0 20px 5px 0;
   padding: 0;
-  vertical-align: top;
+}
+#webform-workflow-submission-state-form .form-item-new-state {
+  margin-right: 0;
 }
 
-.webform-workflow-current-state {
-  font-size: larger;
+/* The <blockquote> containing the log message for a state change */
+.webform-workflow-log-message {
+  margin: 0 10px;
+  padding: 0 10px;
+  border-left: 2px solid #CCC;
 }
