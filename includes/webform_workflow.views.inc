@@ -25,6 +25,14 @@ function webform_workflow_views_data() {
     ),
   );
 
+  $data['webform_workflow_log']['id'] = array(
+    'title' => t('ID'),
+    'help' => t('The primary key for this log message.'),
+    'sort' => array(
+      'views_handler_sort_numeric',
+    ),
+  );
+
   $data['webform_workflow_log']['nid'] = array(
     'title' => t('Node'),
     'help' => t('The webform node this submission was generated from.'),
