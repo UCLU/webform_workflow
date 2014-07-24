@@ -165,10 +165,11 @@ function webform_workflow_menu_alter(&$items) {
  * Implements template_preprocess_webform_submission_page().
  */
 function webform_workflow_preprocess_webform_submission_page(&$variables) {
-  if (webform_workflow_is_enabled($variables['node']) && webform_results_access($variables['node'])) {
+  $submission = $variables['submission'];
+  if (webform_workflow_is_enabled($variables['node']) && !$submission->is_draft && webform_results_access($variables['node'])) {
     $variables['theme_hook_suggestions'][] = 'webform_submission_page__workflow';
     module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.forms');
-    $workflow_form = drupal_get_form('webform_workflow_submission_state_form', $variables['submission']);
+    $workflow_form = drupal_get_form('webform_workflow_submission_state_form', $submission);
     $variables['submission_workflow'] = drupal_render($workflow_form);
   }
 }
@@ -196,6 +197,7 @@ function webform_workflow_theme_registry_alter(&$theme_registry) {
 function webform_workflow_log_access($node, $submission = NULL, $account = NULL) {
   return webform_workflow_is_enabled($node)
     && webform_results_access($node)
+    && !$submission->is_draft
     && webform_submission_access($node, $submission, 'view');
 }
 
@@ -247,15 +249,21 @@ function webform_workflow_webform_submission_load(&$submissions) {
  * @param string $message
  */
 function webform_workflow_transition($submission, $new_state, $message = NULL) {
+
   $current_state = $submission->webform_workflow_state;
 
-  if ($current_state->wsid != $new_state->wsid) {
+  if ($submission->is_draft) {
+    drupal_set_message(t('Submission @sid is a draft, so it cannot have a workflow state.', array(
+      '@sid' => $submission->sid,
+    )), 'warning');
+  }
+  elseif ($current_state->wsid != $new_state->wsid) {
     $current_label = $current_state->label;
     $new_label = $new_state->label;
     $submission->webform_workflow_state = $new_state;
     webform_workflow_write_submission_state($submission);
     webform_workflow_log_transition($submission, $current_state, $new_state, $message);
-    drupal_set_message(t("Transitioned submission @sid from %current_state to %new_state", array(
+    drupal_set_message(t("Transitioned submission @sid from %current_state to %new_state.", array(
       '@sid' => $submission->sid,
       '%current_state' => $current_label,
       '%new_state' => $new_label,
@@ -269,7 +277,7 @@ function webform_workflow_transition($submission, $new_state, $message = NULL) {
     }
   }
   else {
-    drupal_set_message(t('Submission @sid is already in the state %state', array(
+    drupal_set_message(t('Submission @sid is already in the state %state.', array(
       '@sid' => $submission->sid,
       '%state' => $new_state->label,
     )), 'warning');
@@ -311,8 +319,8 @@ function webform_workflow_log_transition($submission, $from, $to, $message = NUL
  * Implements hook_webform_submission_insert().
  */
 function webform_workflow_webform_submission_insert($node, $submission) {
-  // Set new submissions to the default state.
-  if (webform_workflow_is_enabled($node) && !isset($submission->webform_workflow_state)) {
+  // Set new (non-draft) submissions to the default state.
+  if (webform_workflow_is_enabled($node) && !$submission->is_draft && !isset($submission->webform_workflow_state)) {
     $state = webform_workflow_state_get_default($node);
     if (!$state) {
       return;

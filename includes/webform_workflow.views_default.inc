@@ -37,6 +37,7 @@ function webform_workflow_views_default_views() {
     'sid' => 'sid',
     'submitted' => 'submitted',
     'name' => 'name',
+    'is_draft' => 'is_draft',
     'remote_addr' => 'remote_addr',
     'label' => 'label',
     'view_submission' => 'view_submission',
@@ -65,6 +66,13 @@ function webform_workflow_views_default_views() {
       'empty_column' => 0,
     ),
     'name' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'is_draft' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -213,6 +221,11 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['fields']['name']['field'] = 'name';
   $handler->display->display_options['fields']['name']['relationship'] = 'uid';
   $handler->display->display_options['fields']['name']['label'] = 'User';
+  /* Field: Webform submissions: Draft */
+  $handler->display->display_options['fields']['is_draft']['id'] = 'is_draft';
+  $handler->display->display_options['fields']['is_draft']['table'] = 'webform_submissions';
+  $handler->display->display_options['fields']['is_draft']['field'] = 'is_draft';
+  $handler->display->display_options['fields']['is_draft']['label'] = 'Draft?';
   /* Field: Webform submissions: Remote address */
   $handler->display->display_options['fields']['remote_addr']['id'] = 'remote_addr';
   $handler->display->display_options['fields']['remote_addr']['table'] = 'webform_submissions';
