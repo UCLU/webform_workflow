@@ -29,6 +29,7 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['query']['type'] = 'views_query';
   $handler->display->display_options['exposed_form']['type'] = 'basic';
   $handler->display->display_options['exposed_form']['options']['submit_button'] = 'Filter';
+  $handler->display->display_options['exposed_form']['options']['reset_button'] = TRUE;
   $handler->display->display_options['pager']['type'] = 'full';
   $handler->display->display_options['pager']['options']['items_per_page'] = '25';
   $handler->display->display_options['style_plugin'] = 'table';
@@ -37,8 +38,8 @@ function webform_workflow_views_default_views() {
     'sid' => 'sid',
     'submitted' => 'submitted',
     'name' => 'name',
-    'is_draft' => 'is_draft',
     'remote_addr' => 'remote_addr',
+    'is_draft_bool' => 'is_draft_bool',
     'label' => 'label',
     'view_submission' => 'view_submission',
     'edit_submission' => 'view_submission',
@@ -72,14 +73,14 @@ function webform_workflow_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
-    'is_draft' => array(
+    'remote_addr' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
       'separator' => '',
       'empty_column' => 0,
     ),
-    'remote_addr' => array(
+    'is_draft_bool' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => '',
@@ -221,16 +222,16 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['fields']['name']['field'] = 'name';
   $handler->display->display_options['fields']['name']['relationship'] = 'uid';
   $handler->display->display_options['fields']['name']['label'] = 'User';
-  /* Field: Webform submissions: Draft */
-  $handler->display->display_options['fields']['is_draft']['id'] = 'is_draft';
-  $handler->display->display_options['fields']['is_draft']['table'] = 'webform_submissions';
-  $handler->display->display_options['fields']['is_draft']['field'] = 'is_draft';
-  $handler->display->display_options['fields']['is_draft']['label'] = 'Draft?';
   /* Field: Webform submissions: Remote address */
   $handler->display->display_options['fields']['remote_addr']['id'] = 'remote_addr';
   $handler->display->display_options['fields']['remote_addr']['table'] = 'webform_submissions';
   $handler->display->display_options['fields']['remote_addr']['field'] = 'remote_addr';
   $handler->display->display_options['fields']['remote_addr']['label'] = 'IP address';
+  /* Field: Webform submissions: Draft */
+  $handler->display->display_options['fields']['is_draft_bool']['id'] = 'is_draft_bool';
+  $handler->display->display_options['fields']['is_draft_bool']['table'] = 'webform_submissions';
+  $handler->display->display_options['fields']['is_draft_bool']['field'] = 'is_draft_bool';
+  $handler->display->display_options['fields']['is_draft_bool']['not'] = 0;
   /* Field: Webform Workflow State: Label */
   $handler->display->display_options['fields']['label']['id'] = 'label';
   $handler->display->display_options['fields']['label']['table'] = 'webform_workflow_states';

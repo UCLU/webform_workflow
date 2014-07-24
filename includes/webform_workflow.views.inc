@@ -140,4 +140,21 @@ function webform_workflow_views_data_alter(&$data) {
     ),
   );
 
+  // Provide an improved 'Draft' field handler.
+  $data['webform_submissions']['is_draft_bool'] = array(
+    'title' => t('Draft'),
+    'help' => t('Whether or not the submission is a draft (handled as a Boolean value).'),
+    'field' => array(
+      'handler' => 'views_handler_field_boolean',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'real field' => 'is_draft',
+  );
+
 }
