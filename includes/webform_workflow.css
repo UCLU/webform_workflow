@@ -51,7 +51,6 @@
   border: 1px solid transparent;
   border-radius: 3px;
   display: inline-block;
-  font-size: larger;
   max-width: 200px;
   overflow: hidden;
   padding: 3px 5px;
@@ -87,6 +86,7 @@
   color: #000;
 }
 
+.webform-workflow-state,
 .webform-workflow-state-select {
   font-size: larger;
 }

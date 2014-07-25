@@ -168,13 +168,13 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     ->fetch();
   if ($log) {
     $account = $log->uid ? user_load($log->uid) : FALSE;
-    $log_old_state = webform_workflow_state_load($log->old_state_wsid);
-    $log_new_state = webform_workflow_state_load($log->new_state_wsid);
+    $log_old_state = $log->old_state_wsid ? webform_workflow_state_load($log->old_state_wsid) : NULL;
+    $log_new_state = $log->new_state_wsid ? webform_workflow_state_load($log->new_state_wsid) : NULL;
     $log_string = t('@time: %old &rarr; %new (changed by !user)', array(
       '@time' => format_date($log->timestamp, 'short'),
       '!user' => theme('username', array('account' => $account)),
-      '%old' => $log_old_state->label,
-      '%new' => $log_new_state->label,
+      '%old' => $log_old_state ? $log_old_state->label : t('[None]'),
+      '%new' => $log_new_state ? $log_new_state->label : t('[None]'),
     ));
     if ($log->message) {
       $log_string .= '<blockquote class="webform-workflow-log-message">'

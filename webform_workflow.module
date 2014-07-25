@@ -67,18 +67,57 @@ function webform_workflow_state_access($op, $state, $account = NULL) {
   if ($op == 'delete' && webform_workflow_state_is_locked($state)) {
     return FALSE;
   }
-  $node = $state->nid ? node_load($state->nid) : menu_get_object('webform_menu');
+  if ($op == 'create') {
+    $node = menu_get_object('webform_menu');
+  }
+  else {
+    $node = webform_workflow_state_get_node($state);
+  }
   // Account for Inline Entity Form's AJAX callbacks, which mean that the node
   // ID is not available in the URL (when checking for create access, the
   // $state passed in will not have a node ID).
-  if (!$node
-    && $op == 'create'
+  if ($op == 'create'
+    && !$node
     && !empty($_POST)
     && $_POST['form_id'] == 'webform_workflow_config_form'
     && drupal_valid_token($_POST['form_token'], $_POST['form_id'])) {
     return TRUE;
   }
   return $node && node_access('update', $node, $account);
+}
+
+/**
+ * Get the node for a state.
+ *
+ * @param object $state
+ *   The state entity object.
+ * @param bool $reset
+ *   Whether to reset the cache for this check (default to FALSE).
+ *
+ * @return object|FALSE
+ *   The node object which references the state via the Entity Reference field
+ *   webform_workflow_states, or FALSE if no node can be found.
+ */
+function webform_workflow_state_get_node($state, $reset = FALSE) {
+  if (!$state->wsid) {
+    return FALSE;
+  }
+  if (!$reset && !isset($state->_node)) {
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+      ->fieldCondition('webform_workflow_states', 'target_id', $state->wsid)
+      ->range(0, 1);
+    $result = $query->execute();
+    if ($result && isset($result['node'])) {
+      $nids = array_keys($result['node']);
+      $nid = reset($nids);
+      $state->_node = node_load($nid);
+    }
+    else {
+      return FALSE;
+    }
+  }
+  return $state->_node;
 }
 
 /**
@@ -107,7 +146,7 @@ function webform_workflow_state_is_locked($state) {
  */
 function webform_workflow_state_uri($state) {
   return array(
-    'path' => 'node/' . $state->nid . '/webform/workflow/state/' . $state->wsid,
+    'path' => 'webform-workflow-state/' . $state->wsid,
   );
 }
 
@@ -142,16 +181,6 @@ function webform_workflow_menu() {
     'weight' => 4,
   );
 
-  $items['node/%webform_menu/webform/workflow/state/%webform_workflow_state'] = array(
-    'title callback' => 'entity_label',
-    'title arguments' => array('webform_workflow_state', 5),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('webform_workflow_state_form', 1, 5),
-    'file' => 'includes/webform_workflow_state.forms.inc',
-    'access callback' => 'node_access',
-    'access arguments' => array('update', 1),
-  );
-
   $items['node/%webform_menu/submission/%webform_menu_submission/workflow-log'] = array(
     'title' => 'Workflow Log',
     'page callback' => 'webform_workflow_log_page',
@@ -161,6 +190,17 @@ function webform_workflow_menu() {
     'access arguments' => array(1, 3),
     'type' => MENU_LOCAL_TASK,
     'weight' => 3,
+  );
+
+  $items['webform-workflow-state/%webform_workflow_state'] = array(
+    'title callback' => 'entity_label',
+    'title arguments' => array('webform_workflow_state', 5),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('webform_workflow_state_form', 1, 5),
+    'file' => 'includes/webform_workflow_state.forms.inc',
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -229,8 +269,7 @@ function webform_workflow_webform_submission_load(&$submissions) {
       $submission->webform_workflow_state = $states[$wsids[$sid]];
     }
     else {
-      $submission->webform_workflow_state = clone $unknown_state;
-      $submission->webform_workflow_state->nid = $submission->nid;
+      $submission->webform_workflow_state = $unknown_state;
     }
   }
 }
@@ -572,7 +611,7 @@ function webform_workflow_notify_users($submission) {
   }
 
   $node = node_load($submission->nid);
-  $email_templates = webform_workflow_load($node)->data['emails'];
+  $email_templates = $node->webform_workflow->data['emails'];
 
   $token_data = array(
     // @TODO: Add workflow tokens once complete.

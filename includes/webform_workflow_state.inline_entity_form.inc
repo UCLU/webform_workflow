@@ -23,15 +23,8 @@ class WebformWorkflowStateInlineEntityFormController extends EntityInlineEntityF
    */
   public function entityForm($entity_form, &$form_state) {
     $entity_form = parent::entityForm($entity_form, $form_state);
-
-    $entity = $entity_form['#entity'];
-    if (!isset($entity->nid)) {
-      $entity->nid = $form_state['node']->nid;
-    }
-
     form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow_state.forms');
-    webform_workflow_state_form_attach($entity_form, $form_state, $entity);
-
+    webform_workflow_state_form_attach($entity_form, $form_state, $entity_form['#entity']);
     return $entity_form;
   }
 
@@ -53,14 +46,14 @@ class WebformWorkflowStateInlineEntityFormController extends EntityInlineEntityF
       // Form is required: https://www.drupal.org/node/2097583#comment-8997683
       'formatter callback' => array($this, 'formatColor'),
     );
+    $fields['ww_state_notify_users'] = array(
+      'type' => 'field',
+      'label' => t('Users to notify'),
+      'weight' => 3,
+    );
     $fields['ww_state_notify_os'] = array(
       'type' => 'field',
       'label' => t('Notify submitter'),
-      'weight' => 3,
-    );
-    $fields['ww_state_notify_users'] = array(
-      'type' => 'field',
-      'label' => t('Others to notify'),
       'weight' => 4,
     );
     return $fields;

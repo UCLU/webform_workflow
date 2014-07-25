@@ -395,11 +395,11 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['relationships']['sid']['table'] = 'webform_workflow_log';
   $handler->display->display_options['relationships']['sid']['field'] = 'sid';
   $handler->display->display_options['relationships']['sid']['required'] = TRUE;
-  /* Relationship: Webform Workflow Log: Previous State */
+  /* Relationship: Webform Workflow Log: Previous state */
   $handler->display->display_options['relationships']['old_state_wsid']['id'] = 'old_state_wsid';
   $handler->display->display_options['relationships']['old_state_wsid']['table'] = 'webform_workflow_log';
   $handler->display->display_options['relationships']['old_state_wsid']['field'] = 'old_state_wsid';
-  /* Relationship: Webform Workflow Log: New State */
+  /* Relationship: Webform Workflow Log: New state */
   $handler->display->display_options['relationships']['new_state_wsid']['id'] = 'new_state_wsid';
   $handler->display->display_options['relationships']['new_state_wsid']['table'] = 'webform_workflow_log';
   $handler->display->display_options['relationships']['new_state_wsid']['field'] = 'new_state_wsid';
@@ -425,14 +425,14 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['fields']['label_1']['field'] = 'label';
   $handler->display->display_options['fields']['label_1']['relationship'] = 'old_state_wsid';
   $handler->display->display_options['fields']['label_1']['label'] = 'Old state';
-  $handler->display->display_options['fields']['label_1']['empty'] = 'None';
+  $handler->display->display_options['fields']['label_1']['empty'] = '[None]';
   /* Field: Webform Workflow State: Label */
   $handler->display->display_options['fields']['label']['id'] = 'label';
   $handler->display->display_options['fields']['label']['table'] = 'webform_workflow_states';
   $handler->display->display_options['fields']['label']['field'] = 'label';
   $handler->display->display_options['fields']['label']['relationship'] = 'new_state_wsid';
   $handler->display->display_options['fields']['label']['label'] = 'New state';
-  $handler->display->display_options['fields']['label']['empty'] = 'None';
+  $handler->display->display_options['fields']['label']['empty'] = '[None / deleted]';
   /* Field: Webform Workflow Log: Log message */
   $handler->display->display_options['fields']['message']['id'] = 'message';
   $handler->display->display_options['fields']['message']['table'] = 'webform_workflow_log';

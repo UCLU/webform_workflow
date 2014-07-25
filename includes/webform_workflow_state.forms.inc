@@ -10,9 +10,7 @@
 function webform_workflow_state_form($form, &$form_state, $node, $state = NULL) {
 
   if (empty($state)) {
-    $state = entity_create('webform_workflow_state', array(
-      'nid' => $node->nid,
-    ));
+    $state = entity_create('webform_workflow_state');
   }
 
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow_state.forms');
