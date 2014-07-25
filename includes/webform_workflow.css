@@ -48,20 +48,19 @@
   outline: 1px dashed #555;
 }
 .webform-workflow-state-label {
+  border: 1px solid transparent;
   border-radius: 3px;
   display: inline-block;
   font-size: larger;
-  margin-bottom: 2px;
-  margin-top: 2px;
   max-width: 200px;
   overflow: hidden;
   padding: 3px 5px;
   text-overflow: ellipsis;
+  vertical-align: middle;
   white-space: nowrap;
 }
 .webform-workflow-state-color-none {
-  background-color: #FFF;
-  color: #000;
+  border: 1px solid #CCC;
 }
 .webform-workflow-state-color-amber {
   background-color: #FF7E00;
@@ -90,4 +89,9 @@
 
 .webform-workflow-state-select {
   font-size: larger;
+}
+.webform-workflow-state-select .webform-workflow-state-color-none {
+  background-color: #FFF;
+  border: none;
+  color: #000;
 }

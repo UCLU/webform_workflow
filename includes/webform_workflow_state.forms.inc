@@ -55,7 +55,6 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#type' => 'select',
     '#title' => t('Color'),
     '#default_value' => $state->color,
-    '#empty_value' => '',
     '#options' => webform_workflow_state_color_options_list(),
     '#attached' => array(
       'js' => array(
