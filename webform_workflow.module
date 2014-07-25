@@ -316,10 +316,10 @@ function webform_workflow_log_transition($submission, $from, $to, $message = NUL
     'nid' => $submission->nid,
     'sid' => $submission->sid,
     'uid' => $user->uid,
-    'wsid_from' => $from->wsid,
-    'wsid_to' => $to->wsid,
-    'wsid_from_label' => $from->label,
-    'wsid_to_label' => $to->label,
+    'old_state_wsid' => $from->wsid,
+    'new_state_wsid' => $to->wsid,
+    'old_state_label' => $from->label,
+    'new_state_label' => $to->label,
     'message' => $message,
     'timestamp' => REQUEST_TIME,
   );
@@ -391,12 +391,12 @@ function webform_workflow_entity_delete($entity, $type) {
       ->condition('wsid', $entity->wsid)
       ->execute();
     db_update('webform_workflow_log')
-      ->fields(array('wsid_to' => NULL))
-      ->condition('wsid_to', $entity->wsid)
+      ->fields(array('new_state_wsid' => NULL))
+      ->condition('new_state_wsid', $entity->wsid)
       ->execute();
     db_update('webform_workflow_log')
-      ->fields(array('wsid_from' => NULL))
-      ->condition('wsid_from', $entity->wsid)
+      ->fields(array('old_state_wsid' => NULL))
+      ->condition('old_state_wsid', $entity->wsid)
       ->execute();
   }
   // When a webform_workflow_submission entity is deleted, make sure its related

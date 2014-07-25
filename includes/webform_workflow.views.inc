@@ -81,24 +81,24 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['wsid_from'] = array(
+  $data['webform_workflow_log']['old_state_wsid'] = array(
     'title' => t('Previous State'),
     'help' => t('The previous state of the submission.'),
     'relationship' => array(
       'base' => 'webform_workflow_states',
-      'field' => 'wsid_from',
+      'field' => 'old_state_wsid',
       'left_field' => 'wsid',
       'handler' => 'views_handler_relationship',
       'label' => t('Previous Submission State'),
     ),
   );
 
-  $data['webform_workflow_log']['wsid_to'] = array(
+  $data['webform_workflow_log']['new_state_wsid'] = array(
     'title' => t('New State'),
     'help' => t('The new state of the submission.'),
     'relationship' => array(
       'base' => 'webform_workflow_states',
-      'field' => 'wsid_to',
+      'field' => 'new_state_wsid',
       'left_field' => 'wsid',
       'handler' => 'views_handler_relationship',
       'label' => t('New Submission State'),
