@@ -18,11 +18,11 @@ function webform_workflow_entity_property_info() {
       'schema field' => 'wsid',
       'required' => TRUE,
     ),
-    'nid' => array(
-      'label' => t('Webform'),
-      'description' => t('The webform node associated with the state'),
-      'type' => 'node',
-      'schema field' => 'nid',
+    'uid' => array(
+      'label' => t('Owner'),
+      'description' => t('The user who created or who owns the state'),
+      'type' => 'user',
+      'schema field' => 'uid',
       'required' => TRUE,
     ),
     'label' => array(

@@ -7,22 +7,22 @@
 /**
  * Form for editing or adding a state.
  */
-function webform_workflow_state_form($form, &$form_state, $node, $state = NULL) {
+function webform_workflow_state_form($form, &$form_state, $state = NULL) {
 
   if (empty($state)) {
-    $state = entity_create('webform_workflow_state');
+    $state = entity_create('webform_workflow_state', array());
   }
 
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow_state.forms');
 
-  $form_state['node'] = $node;
-
   webform_workflow_state_form_attach($form, $form_state, $state);
+
+  field_attach_form('webform_workflow_state', $state, $form, $form_state);
 
   $form['buttons'] = array('#type' => 'actions');
   $form['buttons']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save'),
+    '#value' => t('Save state'),
   );
 
   return $form;
@@ -33,6 +33,10 @@ function webform_workflow_state_form($form, &$form_state, $node, $state = NULL) 
  */
 function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
   $form_state['state'] = $state;
+
+  if (!$state->wsid && !isset($state->uid)) {
+    $state->uid = $GLOBALS['user']->uid;
+  }
 
   $ops = array(
     'view' => t('View submission'),

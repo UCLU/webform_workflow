@@ -12,14 +12,14 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
   public function create(array $values = array()) {
     $default_values = array(
       'wsid' => NULL,
+      'uid' => NULL,
       'label' => NULL,
       'color' => NULL,
       'data' => $this->getDataDefaults(),
     );
     // Overwrite default values with supplied values.
     $values = array_merge($default_values, $values);
-    $state = parent::create($values);
-    return $state;
+    return parent::create($values);
   }
 
   /**
