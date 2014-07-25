@@ -318,8 +318,6 @@ function webform_workflow_log_transition($submission, $from, $to, $message = NUL
     'uid' => $user->uid,
     'old_state_wsid' => $from->wsid,
     'new_state_wsid' => $to->wsid,
-    'old_state_label' => $from->label,
-    'new_state_label' => $to->label,
     'message' => $message,
     'timestamp' => REQUEST_TIME,
   );

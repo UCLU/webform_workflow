@@ -82,7 +82,7 @@ function webform_workflow_views_data() {
   );
 
   $data['webform_workflow_log']['old_state_wsid'] = array(
-    'title' => t('Previous State'),
+    'title' => t('Previous state'),
     'help' => t('The previous state of the submission.'),
     'relationship' => array(
       'base' => 'webform_workflow_states',
@@ -94,7 +94,7 @@ function webform_workflow_views_data() {
   );
 
   $data['webform_workflow_log']['new_state_wsid'] = array(
-    'title' => t('New State'),
+    'title' => t('New state'),
     'help' => t('The new state of the submission.'),
     'relationship' => array(
       'base' => 'webform_workflow_states',

@@ -132,18 +132,6 @@ function webform_workflow_schema() {
         'unsigned' => TRUE,
         'not null' => FALSE,
       ),
-      'old_state_label' => array(
-        'description' => 'The label of the origin state, at the time of the transition.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => FALSE,
-      ),
-      'new_state_label' => array(
-        'description' => 'The label of the destination state, at the time of the transition.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => FALSE,
-      ),
       'message' => array(
         'description' => 'A log message.',
         'type' => 'text',
