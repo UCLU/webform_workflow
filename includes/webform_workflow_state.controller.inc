@@ -35,7 +35,6 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
         'from' => array(),
         'to' => array(),
       ),
-      'notify_users' => array(),
     );
   }
 
