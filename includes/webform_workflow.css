@@ -9,19 +9,18 @@
 }
 
 /* The form used for changing the state of a submission */
-#webform-workflow-submission-state-form .form-item,
-#webform-workflow-submission-state-form .form-actions {
+.webform-workflow-submission-state-form .form-item,
+.webform-workflow-submission-state-form .form-actions {
   margin: 0 10px 0 0;
   padding: 5px 0;
 }
-#webform-workflow-submission-state-form #edit-current-state,
-#webform-workflow-submission-state-form .form-item-new-state {
+.webform-workflow-submission-state-form #edit-current-state,
+.webform-workflow-submission-state-form .form-item-new-state {
   display: inline-block;
-  margin: 0 20px 5px 0;
-  padding: 0;
+  margin-right: 20px;
   vertical-align: top;
 }
-#webform-workflow-submission-state-form .form-item-new-state {
+.webform-workflow-submission-state-form .form-item-new-state {
   margin-right: 0;
 }
 
@@ -42,11 +41,11 @@
   list-style-type: none;
   margin: 0 10px 5px 0;
 }
-.webform-workflow-state-color-options li.selected {
-  outline: 1px dashed #555;
-}
 .webform-workflow-state-color-options li:last-child {
   margin-right: 0;
+}
+.webform-workflow-state-color-options .selected {
+  outline: 1px dashed #555;
 }
 .webform-workflow-state-label {
   border-radius: 3px;
@@ -87,4 +86,8 @@
 .webform-workflow-state-color-yellow {
   background-color: #FF0;
   color: #000;
+}
+
+.webform-workflow-state-select {
+  font-size: larger;
 }

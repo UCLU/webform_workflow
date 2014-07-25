@@ -146,6 +146,8 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     }
   }
 
+  $form['#attributes']['class'] = array('webform-workflow-submission-state-form');
+
   $form['workflow'] = array(
     '#type' => 'fieldset',
     '#title' => t('Workflow'),
