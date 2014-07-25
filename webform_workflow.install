@@ -28,6 +28,12 @@ function webform_workflow_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'color' => array(
+        'description' => 'A color to display for this state.',
+        'type' => 'varchar',
+        'length' => '255',
+        'not null' => FALSE,
+      ),
       'data' => array(
         'description' => 'Any extra data attached to the state. E.g. permissions',
         'type' => 'blob',
@@ -114,25 +120,25 @@ function webform_workflow_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'wsid_from' => array(
+      'old_state_wsid' => array(
         'description' => 'The {webform_workflow_states}.wsid of the origin state.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => FALSE,
       ),
-      'wsid_to' => array(
+      'new_state_wsid' => array(
         'description' => 'The {webform_workflow_states}.wsid of the destination state.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => FALSE,
       ),
-      'wsid_from_label' => array(
+      'old_state_label' => array(
         'description' => 'The label of the origin state, at the time of the transition.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => FALSE,
       ),
-      'wsid_to_label' => array(
+      'new_state_label' => array(
         'description' => 'The label of the destination state, at the time of the transition.',
         'type' => 'varchar',
         'length' => 255,
@@ -150,8 +156,6 @@ function webform_workflow_schema() {
     'primary key' => array('id'),
     'indexes' => array(
       'submission' => array('nid', 'sid'),
-      'wsid_from' => array('wsid_from'),
-      'wsid_to' => array('wsid_to'),
       'timestamp' => array('timestamp'),
     ),
   );

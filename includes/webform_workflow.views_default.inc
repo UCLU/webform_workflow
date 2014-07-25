@@ -269,17 +269,16 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['arguments']['nid']['validate']['type'] = 'node';
   $handler->display->display_options['arguments']['nid']['validate_options']['access'] = TRUE;
   $handler->display->display_options['arguments']['nid']['validate_options']['access_op'] = 'update';
-  /* Filter criterion: Webform Workflow State: Label */
-  $handler->display->display_options['filters']['label']['id'] = 'label';
-  $handler->display->display_options['filters']['label']['table'] = 'webform_workflow_states';
-  $handler->display->display_options['filters']['label']['field'] = 'label';
-  $handler->display->display_options['filters']['label']['operator'] = 'allwords';
-  $handler->display->display_options['filters']['label']['exposed'] = TRUE;
-  $handler->display->display_options['filters']['label']['expose']['operator_id'] = 'label_op';
-  $handler->display->display_options['filters']['label']['expose']['label'] = 'State';
-  $handler->display->display_options['filters']['label']['expose']['operator'] = 'label_op';
-  $handler->display->display_options['filters']['label']['expose']['identifier'] = 'label';
-  $handler->display->display_options['filters']['label']['expose']['remember_roles'] = array(
+  /* Filter criterion: Webform Workflow State: State filter */
+  $handler->display->display_options['filters']['state_select']['id'] = 'state_select';
+  $handler->display->display_options['filters']['state_select']['table'] = 'webform_workflow_states';
+  $handler->display->display_options['filters']['state_select']['field'] = 'state_select';
+  $handler->display->display_options['filters']['state_select']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['state_select']['expose']['operator_id'] = 'state_select_op';
+  $handler->display->display_options['filters']['state_select']['expose']['label'] = 'State';
+  $handler->display->display_options['filters']['state_select']['expose']['operator'] = 'state_select_op';
+  $handler->display->display_options['filters']['state_select']['expose']['identifier'] = 'state_select';
+  $handler->display->display_options['filters']['state_select']['expose']['remember_roles'] = array(
     2 => '2',
     1 => 0,
     3 => 0,
@@ -397,13 +396,13 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['relationships']['sid']['field'] = 'sid';
   $handler->display->display_options['relationships']['sid']['required'] = TRUE;
   /* Relationship: Webform Workflow Log: Previous State */
-  $handler->display->display_options['relationships']['wsid_from']['id'] = 'wsid_from';
-  $handler->display->display_options['relationships']['wsid_from']['table'] = 'webform_workflow_log';
-  $handler->display->display_options['relationships']['wsid_from']['field'] = 'wsid_from';
+  $handler->display->display_options['relationships']['old_state_wsid']['id'] = 'old_state_wsid';
+  $handler->display->display_options['relationships']['old_state_wsid']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['old_state_wsid']['field'] = 'old_state_wsid';
   /* Relationship: Webform Workflow Log: New State */
-  $handler->display->display_options['relationships']['wsid_to']['id'] = 'wsid_to';
-  $handler->display->display_options['relationships']['wsid_to']['table'] = 'webform_workflow_log';
-  $handler->display->display_options['relationships']['wsid_to']['field'] = 'wsid_to';
+  $handler->display->display_options['relationships']['new_state_wsid']['id'] = 'new_state_wsid';
+  $handler->display->display_options['relationships']['new_state_wsid']['table'] = 'webform_workflow_log';
+  $handler->display->display_options['relationships']['new_state_wsid']['field'] = 'new_state_wsid';
   /* Relationship: Webform Workflow Log: User */
   $handler->display->display_options['relationships']['uid']['id'] = 'uid';
   $handler->display->display_options['relationships']['uid']['table'] = 'webform_workflow_log';
@@ -424,14 +423,14 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['fields']['label_1']['id'] = 'label_1';
   $handler->display->display_options['fields']['label_1']['table'] = 'webform_workflow_states';
   $handler->display->display_options['fields']['label_1']['field'] = 'label';
-  $handler->display->display_options['fields']['label_1']['relationship'] = 'wsid_from';
+  $handler->display->display_options['fields']['label_1']['relationship'] = 'old_state_wsid';
   $handler->display->display_options['fields']['label_1']['label'] = 'Old state';
   $handler->display->display_options['fields']['label_1']['empty'] = 'None';
   /* Field: Webform Workflow State: Label */
   $handler->display->display_options['fields']['label']['id'] = 'label';
   $handler->display->display_options['fields']['label']['table'] = 'webform_workflow_states';
   $handler->display->display_options['fields']['label']['field'] = 'label';
-  $handler->display->display_options['fields']['label']['relationship'] = 'wsid_to';
+  $handler->display->display_options['fields']['label']['relationship'] = 'new_state_wsid';
   $handler->display->display_options['fields']['label']['label'] = 'New state';
   $handler->display->display_options['fields']['label']['empty'] = 'None';
   /* Field: Webform Workflow Log: Log message */

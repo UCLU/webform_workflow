@@ -7,7 +7,7 @@
 /**
  * Implements hook_entity_property_info().
  */
-function webform_workflow_property_info() {
+function webform_workflow_entity_property_info() {
   $info = array();
   $properties = &$info['webform_workflow_state']['properties'];
   $properties = array(
@@ -26,17 +26,19 @@ function webform_workflow_property_info() {
       'required' => TRUE,
     ),
     'label' => array(
+      'label' => t('Label'),
       'description' => t('The name of the state'),
       'type' => 'text',
       'schema field' => 'label',
       'required' => TRUE,
     ),
-    'weight' => array(
-      'label' => t('Weight'),
-      'description' => t('The weight of the state'),
-      'type' => 'integer',
-      'schema field' => 'weight',
-      'required' => TRUE,
+    'color' => array(
+      'label' => t('Color'),
+      'description' => t('The state color'),
+      'type' => 'text',
+      'schema field' => 'color',
+      'required' => FALSE,
+      'options list' => 'webform_workflow_state_color_options_list',
     ),
   );
   return $info;

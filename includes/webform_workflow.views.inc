@@ -81,24 +81,24 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['wsid_from'] = array(
+  $data['webform_workflow_log']['old_state_wsid'] = array(
     'title' => t('Previous State'),
     'help' => t('The previous state of the submission.'),
     'relationship' => array(
       'base' => 'webform_workflow_states',
-      'field' => 'wsid_from',
+      'field' => 'old_state_wsid',
       'left_field' => 'wsid',
       'handler' => 'views_handler_relationship',
       'label' => t('Previous Submission State'),
     ),
   );
 
-  $data['webform_workflow_log']['wsid_to'] = array(
+  $data['webform_workflow_log']['new_state_wsid'] = array(
     'title' => t('New State'),
     'help' => t('The new state of the submission.'),
     'relationship' => array(
       'base' => 'webform_workflow_states',
-      'field' => 'wsid_to',
+      'field' => 'new_state_wsid',
       'left_field' => 'wsid',
       'handler' => 'views_handler_relationship',
       'label' => t('New Submission State'),
@@ -138,6 +138,21 @@ function webform_workflow_views_data_alter(&$data) {
       'field' => 'wsid',
       'left_table' => 'webform_workflow_submissions',
     ),
+  );
+
+  // Alter the field and filter handlers for state labels.
+  if (isset($data['webform_workflow_states'])) {
+    $data['webform_workflow_states']['label']['field']['handler'] = 'webform_workflow_views_handler_field_state';
+  }
+
+  // Add a filter for a drop-down list of states.
+  $data['webform_workflow_states']['state_select'] = array(
+    'title' => t('State filter'),
+    'help' => t('Use this to provide an exposed filter with a drop-down list of states.'),
+    'filter' => array(
+      'handler' => 'webform_workflow_views_handler_filter_state',
+    ),
+    'real field' => 'wsid',
   );
 
   // Provide an improved 'Draft' field handler.

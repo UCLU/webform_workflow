@@ -122,6 +122,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $seen_current = FALSE;
   $available_states = webform_workflow_get_available_states($node);
   $group = ($state->wsid) && count($available_states) > 1;
+  $new_state_colors = array();
   foreach ($available_states as $new_state) {
     if ($new_state->wsid == $state->wsid) {
       $seen_current = TRUE;
@@ -139,10 +140,13 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
       else {
         $new_state_options[$new_state->wsid] = $new_state->label;
       }
+      if ($new_state->color) {
+        $new_state_colors['state-' . $new_state->wsid] = $new_state->color;
+      }
     }
   }
 
-  $state_class = drupal_html_class('webform-workflow-state-' . $state->label);
+  $form['#attributes']['class'] = array('webform-workflow-submission-state-form');
 
   $form['workflow'] = array(
     '#type' => 'fieldset',
@@ -152,7 +156,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $form['workflow']['current_state'] = array(
     '#type' => 'item',
     '#title' => t('Current state'),
-    '#markup' => '<span class="webform-workflow-current-state ' . $state_class . '">' . check_plain($state->label) . '</span>',
+    '#markup' => theme('webform_workflow_state', array('state' => $state)),
   );
 
   $log = db_select('webform_workflow_log', 'wwl')
@@ -167,8 +171,8 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     $log_string = t('@time: %old &rarr; %new (changed by !user)', array(
       '@time' => format_date($log->timestamp, 'short'),
       '!user' => theme('username', array('account' => $account)),
-      '%old' => $log->wsid_from_label,
-      '%new' => $log->wsid_to_label,
+      '%old' => $log->old_state_label,
+      '%new' => $log->new_state_label,
     ));
     if ($log->message) {
       $log_string .= '<blockquote class="webform-workflow-log-message">'
@@ -196,6 +200,18 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#title_display' => 'before',
     '#weight' => 20,
   );
+
+  if ($new_state_colors) {
+    $form['workflow']['new_state']['#attributes']['class'] = array('webform-workflow-state-select');
+    $form['workflow']['new_state']['#attached']['js'] = array(
+      drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js',
+      array(
+        'data' => array('webformWorkflow' => array('stateColors' => $new_state_colors)),
+        'type' => 'setting',
+      ),
+    );
+  }
+
   $new_state_trigger = array(
     ':input[name="new_state"]' => array('!value' => ''),
   );
@@ -222,8 +238,6 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#title' => t('Cancel'),
     '#href' => current_path(),
   );
-
-  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';
   return $form;
 }
 
