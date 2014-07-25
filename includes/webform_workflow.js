@@ -13,6 +13,7 @@
             color = option.attr('value'),
             label = option.text(),
             list_option = $('<li>')
+              .addClass('webform-workflow-state-color')
               .addClass('webform-workflow-state-color-' + color)
               .data('color', color)
               .text(label);

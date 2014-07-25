@@ -22,13 +22,10 @@ class webform_workflow_views_handler_field_state extends views_handler_field {
    * Overrides parent::get_value().
    */
   public function render($values) {
-    $label = parent::get_value($values);
-    $color = parent::get_value($values, 'color');
-    $state_stub = (object) array(
-      'label' => $label,
-      'color' => $color,
-    );
-    return theme('webform_workflow_state', array('state' => $state_stub));
+    return theme('webform_workflow_state_color', array(
+      'content' => parent::get_value($values),
+      'color' => parent::get_value($values, 'color'),
+    ));
   }
 
 }
