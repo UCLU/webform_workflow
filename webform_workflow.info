@@ -13,5 +13,6 @@ dependencies[] = views_bulk_operations
 files[] = includes/webform_workflow_state.controller.inc
 files[] = includes/webform_workflow_state.inline_entity_form.inc
 files[] = includes/views/handlers/webform_workflow_views_handler_field_state.inc
+files[] = includes/views/handlers/webform_workflow_views_handler_filter_state.inc
 
 stylesheets[all][] = includes/webform_workflow.css

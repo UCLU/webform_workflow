@@ -140,10 +140,20 @@ function webform_workflow_views_data_alter(&$data) {
     ),
   );
 
-  // Alter the field handler for displaying a state label.
+  // Alter the field and filter handlers for state labels.
   if (isset($data['webform_workflow_states'])) {
     $data['webform_workflow_states']['label']['field']['handler'] = 'webform_workflow_views_handler_field_state';
   }
+
+  // Add a filter for a drop-down list of states.
+  $data['webform_workflow_states']['state_select'] = array(
+    'title' => t('State filter'),
+    'help' => t('Use this to provide an exposed filter with a drop-down list of states.'),
+    'filter' => array(
+      'handler' => 'webform_workflow_views_handler_filter_state',
+    ),
+    'real field' => 'wsid',
+  );
 
   // Provide an improved 'Draft' field handler.
   $data['webform_submissions']['is_draft_bool'] = array(

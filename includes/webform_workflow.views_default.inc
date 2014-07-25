@@ -269,17 +269,16 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['arguments']['nid']['validate']['type'] = 'node';
   $handler->display->display_options['arguments']['nid']['validate_options']['access'] = TRUE;
   $handler->display->display_options['arguments']['nid']['validate_options']['access_op'] = 'update';
-  /* Filter criterion: Webform Workflow State: Label */
-  $handler->display->display_options['filters']['label']['id'] = 'label';
-  $handler->display->display_options['filters']['label']['table'] = 'webform_workflow_states';
-  $handler->display->display_options['filters']['label']['field'] = 'label';
-  $handler->display->display_options['filters']['label']['operator'] = 'allwords';
-  $handler->display->display_options['filters']['label']['exposed'] = TRUE;
-  $handler->display->display_options['filters']['label']['expose']['operator_id'] = 'label_op';
-  $handler->display->display_options['filters']['label']['expose']['label'] = 'State';
-  $handler->display->display_options['filters']['label']['expose']['operator'] = 'label_op';
-  $handler->display->display_options['filters']['label']['expose']['identifier'] = 'label';
-  $handler->display->display_options['filters']['label']['expose']['remember_roles'] = array(
+  /* Filter criterion: Webform Workflow State: State filter */
+  $handler->display->display_options['filters']['state_select']['id'] = 'state_select';
+  $handler->display->display_options['filters']['state_select']['table'] = 'webform_workflow_states';
+  $handler->display->display_options['filters']['state_select']['field'] = 'state_select';
+  $handler->display->display_options['filters']['state_select']['exposed'] = TRUE;
+  $handler->display->display_options['filters']['state_select']['expose']['operator_id'] = 'state_select_op';
+  $handler->display->display_options['filters']['state_select']['expose']['label'] = 'State';
+  $handler->display->display_options['filters']['state_select']['expose']['operator'] = 'state_select_op';
+  $handler->display->display_options['filters']['state_select']['expose']['identifier'] = 'state_select';
+  $handler->display->display_options['filters']['state_select']['expose']['remember_roles'] = array(
     2 => '2',
     1 => 0,
     3 => 0,

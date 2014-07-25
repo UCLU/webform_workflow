@@ -17,6 +17,7 @@ function webform_workflow_submissions_list($node) {
   }
   $view = views_get_view('webform_workflow_submissions');
   $view->override_path = current_path();
+  $view->override_url = current_path();
   return $view->preview('embed', array($node->nid));
 }
 
@@ -32,5 +33,6 @@ function webform_workflow_log_page($node, $submission) {
   )));
   $view = views_get_view('webform_workflow_log');
   $view->override_path = current_path();
+  $view->override_url = current_path();
   return $view->preview('embed', array($node->nid, $submission->sid));
 }
