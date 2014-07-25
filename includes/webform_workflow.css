@@ -56,7 +56,7 @@
   margin-top: 2px;
   max-width: 200px;
   overflow: hidden;
-  padding: 5px 3px;
+  padding: 3px 5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -69,11 +69,11 @@
   color: #FFF;
 }
 .webform-workflow-state-color-blue {
-  background-color: #4d77cb;
+  background-color: #00C;
   color: #FFF;
 }
 .webform-workflow-state-color-green {
-  background-color: #34B27D;
+  background-color: #0B0;
   color: #FFF;
 }
 .webform-workflow-state-color-purple {
@@ -81,10 +81,10 @@
   color: #FFF;
 }
 .webform-workflow-state-color-red {
-  background-color: #CB4D4D;
+  background-color: #C00;
   color: #FFF;
 }
 .webform-workflow-state-color-yellow {
-  background-color: #FFFF00;
+  background-color: #FF0;
   color: #000;
 }
