@@ -9,27 +9,16 @@
  * Implements hook_token_info().
  */
 function webform_workflow_token_info() {
-  // Webform workflow submission tokens.
-  $info['types']['submission-workflow'] = array(
-    'name' => t('Submission'),
-    'description' => t('Tokens related to webform submission workflow state.'),
-    'needs-data' => 'webform-workflow-submission',
-  );
-
-  $info['tokens']['submission-workflow']['sid'] = array(
-    'name' => t('Submission ID'),
-    'description' => t('The unique identifier for the webform submission.'),
-  );
-  $info['tokens']['submission-workflow']['nid'] = array(
-    'name' => t('Webform node ID'),
-    'description' => t('The unique identifier for the webform.'),
-    'type' => 'node',
-  );
-  $info['tokens']['submission-workflow']['wsid'] = array(
+  $info['tokens']['submission']['state'] = array(
     'name' => t('Workflow state'),
-    'description' => t('The current workflow state of the submission.'),
+    'description' => t('The current workflow state for this submission.'),
+    'type' => 'webform_workflow_state',
   );
-
+  $info['tokens']['submission']['previous-state'] = array(
+    'name' => t('Previous workflow state'),
+    'description' => t('The previous workflow state for this submission.'),
+    'type' => 'webform_workflow_state',
+  );
   return $info;
 }
 
@@ -38,31 +27,40 @@ function webform_workflow_token_info() {
  */
 function webform_workflow_tokens($type, $tokens, array $data = array(), array $options = array()) {
   $replacements = array();
+  if ($type == 'submission' && !empty($data['webform-submission'])) {
+    $submission = $data['webform-submission'];
+    if (isset($submission->webform_workflow_state)) {
+      $state = $submission->webform_workflow_state;
+      $sanitize = !empty($options['sanitize']);
+      foreach ($tokens as $name => $original) {
+        switch ($name) {
+          case 'state':
+            $data = $state->label;
+            $replacements[$original] = $sanitize ? check_plain($data) : $data;
+            break;
 
-  // Webform tokens (caching globally).
-  if ($type == 'submission-workflow' && !empty($data['webform-submission-workflow'])) {
-    // Prepare all the submission data that we will likely need more than once.
-    $submission = $data['webform-submission-workflow'];
-    $node = isset($data['node']) ? $data['node'] : node_load($submission->nid);
-    $email = isset($data['webform-email']) ? $data['webform-email'] : NULL;
+          case 'previous-state':
+            if (isset($submission->webform_workflow_state_previous)) {
+              $data = $submission->webform_workflow_state_previous->label;
+              $replacements[$original] = $sanitize ? check_plain($data) : $data;
+            }
+            break;
 
-    // Replace individual tokens that have an exact replacement.
-    foreach ($tokens as $name => $original) {
-      switch ($name) {
-        case 'sid':
-          $replacements[$original] = $submission->sid;
-          break;
+        }
+      }
+
+      $current_state_tokens = token_find_with_prefix($tokens, 'state');
+      if ($current_state_tokens) {
+        $replacements += token_generate('webform_workflow_state', $current_state_tokens, array(
+          'webform_workflow_state' => $state,
+        ));
+      }
+      if (isset($submission->webform_workflow_state_previous) && ($previous_state_tokens = token_find_with_prefix($tokens, 'previous-state'))) {
+        $replacements += token_generate('webform_workflow_state', $previous_state_tokens, array(
+          'webform_workflow_state' => $submission->webform_workflow_state_previous,
+        ));
       }
     }
-
-    // Chained token relationships.
-    if ($date_tokens = token_find_with_prefix($tokens, 'date')) {
-      $replacements += token_generate('date', $date_tokens, array('date' => $submission->submitted), $options);
-    }
-    if (($user_tokens = token_find_with_prefix($tokens, 'user')) && $account = user_load($submission->uid)) {
-      $replacements += token_generate('user', $user_tokens, array('user' => $account), $options);
-    }
   }
-
   return $replacements;
 }

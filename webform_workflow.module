@@ -65,10 +65,6 @@ function webform_workflow_entity_info() {
  */
 function webform_workflow_state_access($op, $state, $account = NULL) {
   $account = $account ? $account : $GLOBALS['user'];
-  // Always allow access to the state's owner.
-  if ($state->uid && $account->uid === $state->uid) {
-    return TRUE;
-  }
   // When creating a new state, allow access based on whether the user is
   // allowed to update the current webform node.
   if ($op == 'create') {
@@ -83,11 +79,15 @@ function webform_workflow_state_access($op, $state, $account = NULL) {
     }
   }
   // When checking access for an existing state, attempt to find whether it is
-  // associated with a single node.
+  // associated with a single webform node.
   else {
     $node = webform_workflow_state_get_node($state);
   }
-  return $node && node_access('update', $node, $account);
+  // If the node could not be found, check the state's owner.
+  if (!$node) {
+    return $state->uid && $account->uid === $state->uid;
+  }
+  return node_access('update', $node, $account);
 }
 
 /**
@@ -285,6 +285,7 @@ function webform_workflow_transition($submission, $new_state, $message = NULL) {
     $current_label = $current_state->label;
     $new_label = $new_state->label;
     $submission->webform_workflow_state = $new_state;
+    $submission->webform_workflow_state_previous = $current_state;
     webform_workflow_write_submission_state($submission);
     webform_workflow_log_transition($submission, $current_state, $new_state, $message);
     drupal_set_message(t("Transitioned submission @sid from %current_state to %new_state.", array(
@@ -347,12 +348,9 @@ function webform_workflow_webform_submission_insert($node, $submission) {
     if (!$state) {
       return;
     }
-    $record = array(
-      'nid' => $node->nid,
-      'sid' => $submission->sid,
-      'wsid' => $state->wsid,
-    );
-    drupal_write_record('webform_workflow_submissions', $record);
+    $submission->webform_workflow_state = $state;
+    webform_workflow_write_submission_state($submission);
+    webform_workflow_notify_users($submission);
   }
 }
 
@@ -577,7 +575,7 @@ function webform_workflow_state_get_notify_addresses($submission) {
   $addresses = array();
   if (isset($state_wrapper->ww_state_notify_users)) {
     foreach ($state_wrapper->ww_state_notify_users as $account_wrapper) {
-      $addresses = $account_wrapper->mail->value();
+      $addresses[] = $account_wrapper->mail->value();
     }
   }
   if (!empty($state_wrapper->ww_state_notify_os)) {
@@ -592,9 +590,13 @@ function webform_workflow_state_get_notify_addresses($submission) {
 }
 
 /**
- * Notify users of state transition by email.
+ * Notify users of a state transition by email.
  */
 function webform_workflow_notify_users($submission) {
+  if (empty($submission->webform_workflow_state)) {
+    return;
+  }
+
   $notify_emails = webform_workflow_state_get_notify_addresses($submission);
   if (!$notify_emails) {
     return;
@@ -603,19 +605,14 @@ function webform_workflow_notify_users($submission) {
   $node = node_load($submission->nid);
   $email_templates = $node->webform_workflow->data['emails'];
 
-  $token_data = array(
-    // @TODO: Add workflow tokens once complete.
-    'node' => $node,
-    'webform-submission' => $submission,
-  );
+  $token_data = array('node' => $node, 'webform-submission' => $submission);
+  $token_options = array('clear' => TRUE, 'sanitize' => FALSE);
   $params = array(
-    'subject' => token_replace($email_templates['subject'], $token_data),
-    'body'    => token_replace($email_templates['body'   ], $token_data),
+    'subject' => token_replace($email_templates['subject'], $token_data, $token_options),
+    'body' => token_replace($email_templates['body'], $token_data, $token_options),
   );
 
-  foreach ($notify_emails as $email) {
-    drupal_mail('webform_workflow', 'transition', $email, LANGUAGE_NONE, $params);
-  }
+  drupal_mail('webform_workflow', 'state_transition', implode(',', $notify_emails), LANGUAGE_NONE, $params);
 }
 
 /**
@@ -623,7 +620,7 @@ function webform_workflow_notify_users($submission) {
  */
 function webform_workflow_mail($key, &$message, $params) {
   switch($key) {
-    case 'transition':
+    case 'state_transition':
       $message['subject'] = $params['subject'];
       $message['body'][] = $params['body'];
       break;

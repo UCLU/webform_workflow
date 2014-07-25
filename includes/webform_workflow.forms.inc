@@ -52,7 +52,11 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#default_value' => $emails['body'],
     '#rows' => 5,
     '#cols' => 80,
-    '#description' => theme('webform_token_help', array('groups' => array('node', 'submission'))),
+    '#description' => theme('webform_token_help', array('groups' => array(
+      'node',
+      'submission',
+      'webform_workflow_state',
+    ))),
   );
 
   $form['buttons'] = array('#type' => 'actions');
