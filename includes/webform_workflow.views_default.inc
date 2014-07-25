@@ -432,7 +432,7 @@ function webform_workflow_views_default_views() {
   $handler->display->display_options['fields']['label']['field'] = 'label';
   $handler->display->display_options['fields']['label']['relationship'] = 'new_state_wsid';
   $handler->display->display_options['fields']['label']['label'] = 'New state';
-  $handler->display->display_options['fields']['label']['empty'] = '[None / deleted]';
+  $handler->display->display_options['fields']['label']['empty'] = '[None]';
   /* Field: Webform Workflow Log: Log message */
   $handler->display->display_options['fields']['message']['id'] = 'message';
   $handler->display->display_options['fields']['message']['table'] = 'webform_workflow_log';

@@ -64,29 +64,28 @@ function webform_workflow_entity_info() {
  * @return bool
  */
 function webform_workflow_state_access($op, $state, $account = NULL) {
-  if ($op == 'delete' && webform_workflow_state_is_locked($state)) {
-    return FALSE;
-  }
   $account = $account ? $account : $GLOBALS['user'];
   // Always allow access to the state's owner.
   if ($state->uid && $account->uid === $state->uid) {
     return TRUE;
   }
+  // When creating a new state, allow access based on whether the user is
+  // allowed to update the current webform node.
   if ($op == 'create') {
     $node = menu_get_object('webform_menu');
+    // Account for Inline Entity Form's AJAX callbacks, which mean that the node
+    // ID is not available in the URL.
+    if (!$node
+      && !empty($_POST)
+      && $_POST['form_id'] == 'webform_workflow_config_form'
+      && drupal_valid_token($_POST['form_token'], $_POST['form_id'])) {
+      return TRUE;
+    }
   }
+  // When checking access for an existing state, attempt to find whether it is
+  // associated with a single node.
   else {
     $node = webform_workflow_state_get_node($state);
-  }
-  // Account for Inline Entity Form's AJAX callbacks, which mean that the node
-  // ID is not available in the URL (when checking for create access, the
-  // $state passed in will not have a node ID).
-  if ($op == 'create'
-    && !$node
-    && !empty($_POST)
-    && $_POST['form_id'] == 'webform_workflow_config_form'
-    && drupal_valid_token($_POST['form_token'], $_POST['form_id'])) {
-    return TRUE;
   }
   return $node && node_access('update', $node, $account);
 }
@@ -125,21 +124,6 @@ function webform_workflow_state_get_node($state, $reset = FALSE) {
     }
   }
   return $state->_node;
-}
-
-/**
- * Check whether a state is locked against deletion.
- *
- * @return bool
- *   TRUE if the state has any submissions associated with it, FALSE otherwise.
- */
-function webform_workflow_state_is_locked($state) {
-  $query = db_select('webform_workflow_submissions')
-    ->condition('wsid', $state->wsid)
-    ->range(0, 1);
-  $query->addExpression('COUNT(*)');
-  $count = $query->execute()->fetchField();
-  return $count > 0;
 }
 
 /**

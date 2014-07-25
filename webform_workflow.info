@@ -7,6 +7,7 @@ dependencies[] = entity
 dependencies[] = entityreference
 dependencies[] = inline_entity_form
 dependencies[] = webform (>= 7.x-4.x)
+dependencies[] = token
 dependencies[] = views
 dependencies[] = views_bulk_operations
 
