@@ -19,6 +19,7 @@
   display: inline-block;
   margin: 0 20px 5px 0;
   padding: 0;
+  vertical-align: top;
 }
 #webform-workflow-submission-state-form .form-item-new-state {
   margin-right: 0;
@@ -47,26 +48,43 @@
 .webform-workflow-state-color-options li:last-child {
   margin-right: 0;
 }
-.webform-workflow-state-color {
+.webform-workflow-state-label {
   border-radius: 3px;
-  padding: 5px;
-}
-#edit-current-state .webform-workflow-state {
+  display: inline-block;
   font-size: larger;
+  margin-bottom: 2px;
+  margin-top: 2px;
+  max-width: 200px;
+  overflow: hidden;
+  padding: 5px 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.webform-workflow-state-color-none {
+  background-color: #FFF;
+  color: #000;
 }
 .webform-workflow-state-color-amber {
   background-color: #FF7E00;
-  color: #000;
+  color: #FFF;
 }
 .webform-workflow-state-color-blue {
-  background-color: #0000FF;
+  background-color: #4d77cb;
   color: #FFF;
 }
 .webform-workflow-state-color-green {
-  background-color: #00FF00;
-  color: #000;
+  background-color: #34B27D;
+  color: #FFF;
+}
+.webform-workflow-state-color-purple {
+  background-color: #93C;
+  color: #FFF;
 }
 .webform-workflow-state-color-red {
-  background-color: #FF0000;
+  background-color: #CB4D4D;
   color: #FFF;
+}
+.webform-workflow-state-color-yellow {
+  background-color: #FFFF00;
+  color: #000;
 }

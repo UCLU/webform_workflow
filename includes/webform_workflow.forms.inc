@@ -122,6 +122,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   $seen_current = FALSE;
   $available_states = webform_workflow_get_available_states($node);
   $group = ($state->wsid) && count($available_states) > 1;
+  $new_state_colors = array();
   foreach ($available_states as $new_state) {
     if ($new_state->wsid == $state->wsid) {
       $seen_current = TRUE;
@@ -138,6 +139,9 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
       }
       else {
         $new_state_options[$new_state->wsid] = $new_state->label;
+      }
+      if ($new_state->color) {
+        $new_state_colors['state-' . $new_state->wsid] = $new_state->color;
       }
     }
   }
@@ -194,6 +198,18 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#title_display' => 'before',
     '#weight' => 20,
   );
+
+  if ($new_state_colors) {
+    $form['workflow']['new_state']['#attributes']['class'] = array('webform-workflow-state-select');
+    $form['workflow']['new_state']['#attached']['js'] = array(
+      drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js',
+      array(
+        'data' => array('webformWorkflow' => array('stateColors' => $new_state_colors)),
+        'type' => 'setting',
+      ),
+    );
+  }
+
   $new_state_trigger = array(
     ':input[name="new_state"]' => array('!value' => ''),
   );

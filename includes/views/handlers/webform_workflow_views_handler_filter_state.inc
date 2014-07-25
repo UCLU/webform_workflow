@@ -49,7 +49,7 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
   /**
    * Overrides parent::option_definition().
    */
-  function option_definition() {
+  public function option_definition() {
     $options = parent::option_definition();
     $options['webform_nid'] = array('default' => NULL);
     return $options;
@@ -58,7 +58,7 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
   /**
    * Overrides parent::options_form().
    */
-  function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
     $form['webform_nid'] = array(
       '#type' => 'textfield',
@@ -67,6 +67,32 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
       '#default_value' => $this->options['webform_nid'],
       '#element_validate' => array('element_validate_integer_positive'),
     );
+  }
+
+  /**
+   * Overrides parent::value_form().
+   */
+  public function value_form(&$form, &$form_state) {
+    parent::value_form($form, $form_state);
+    $colors = array();
+    $wsids = array_keys($form['value']['#options']);
+    if ($wsids) {
+      foreach (entity_load('webform_workflow_state', $wsids) as $state) {
+        if ($state->color) {
+          $colors['state-' . $state->wsid] = $state->color;
+        }
+      }
+    }
+    if ($colors) {
+      $form['value']['#attributes']['class'] = array('webform-workflow-state-select');
+      $form['value']['#attached']['js'] = array(
+        drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js',
+        array(
+          'data' => array('webformWorkflow' => array('stateColors' => $colors)),
+          'type' => 'setting',
+        ),
+      );
+    }
   }
 
   /**

@@ -8,12 +8,12 @@
       $('select.webform-workflow-state-color-list').once('webform-workflow-state-colors').each(function() {
         var select_element = $(this);
         var list = $('<ul>').addClass('webform-workflow-state-color-options');
-        select_element.find('option').each(function() {
+        select_element.find('option').each(function () {
           var option = $(this),
             color = option.attr('value'),
             label = option.text(),
             list_option = $('<li>')
-              .addClass('webform-workflow-state-color')
+              .addClass('webform-workflow-state-label')
               .addClass('webform-workflow-state-color-' + color)
               .data('color', color)
               .text(label);
@@ -32,6 +32,31 @@
           return false;
         });
       });
+      if (settings.webformWorkflow !== undefined) {
+        $('select.webform-workflow-state-select').once('webform-workflow-state-colors').each(function() {
+          var select = $(this),
+            updateSelectColor = function () {
+              var selected = select.find(':selected:eq(0)');
+              if (selected.length) {
+                var bgcolor = selected.css('background-color') || 'inherit',
+                  color = selected.css('color') || 'inherit';
+                select.css('background-color', bgcolor).css('color', color);
+              }
+            };
+          select.find('option').each(function () {
+            var option = $(this),
+              wsid = option.attr('value');
+            if (wsid && settings.webformWorkflow.stateColors['state-' + wsid] !== undefined) {
+              option.addClass('webform-workflow-state-color-' + settings.webformWorkflow.stateColors['state-' + wsid]);
+            }
+            else {
+              option.addClass('webform-workflow-state-color-none');
+            }
+          });
+          updateSelectColor();
+          select.change(updateSelectColor);
+        });
+      }
     }
   };
 })(jQuery, Drupal);
