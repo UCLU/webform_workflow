@@ -35,7 +35,7 @@ function webform_workflow_schema() {
         'not null' => FALSE,
       ),
       'data' => array(
-        'description' => 'Any extra data attached to the state. E.g. permissions',
+        'description' => 'Any extra data attached to the state, e.g. permissions.',
         'type' => 'blob',
         'not null' => FALSE,
       ),
@@ -43,6 +43,7 @@ function webform_workflow_schema() {
     'primary key' => array('wsid'),
     'indexes' => array(
       'nid' => array('nid'),
+      'label' => array('label'),
     ),
   );
 
@@ -166,15 +167,24 @@ function webform_workflow_install() {
     field_create_field($field_base);
   }
 
-  // Create default instances.
   module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.field_instances');
+
+  // Create default instances for nodes.
   foreach (webform_node_types() as $bundle) {
-    foreach (_webform_workflow_field_instances() as $instance) {
+    foreach (_webform_workflow_node_field_instances() as $instance) {
       if (field_info_instance('node', $instance['field_name'], $bundle)) {
         continue;
       }
       $instance['bundle'] = $bundle;
       field_create_instance($instance);
     }
+  }
+
+  // Create default instances for workflow states.
+  foreach (_webform_workflow_state_field_instances() as $instance) {
+    if (field_info_instance('webform_workflow_state', $instance['field_name'], $instance['bundle'])) {
+      continue;
+    }
+    field_create_instance($instance);
   }
 }

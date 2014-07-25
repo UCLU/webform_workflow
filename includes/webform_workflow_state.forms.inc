@@ -56,11 +56,6 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#title' => t('Color'),
     '#default_value' => $state->color,
     '#options' => webform_workflow_state_color_options_list(),
-    '#attached' => array(
-      'js' => array(
-        drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js',
-      ),
-    ),
     '#attributes' => array('class' => array('webform-workflow-state-color-list')),
   );
 
@@ -88,15 +83,7 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     );
   }
 
-  $form['data']['notify_users'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Notification e-mail addresses'),
-    '#default_value' => webform_workflow_get_user_text($state->data['notify_users']),
-    '#rows' => 3,
-    '#cols' => 32,
-    '#element_validate' => array('webform_workflow_state_validate_notify_users'),
-  );
-
+  $form['#attached']['js'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js';
   $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';
 }
 
@@ -117,42 +104,4 @@ function webform_workflow_state_form_submit($form, &$form_state) {
     field_attach_submit('webform_workflow_state', $state, $form, $form_state);
   }
   entity_get_controller('webform_workflow_state')->save($state);
-}
-
-/**
- * Validate the 'notify_users' element.
- */
-function webform_workflow_state_validate_notify_users($element, &$form_state) {
-  $value = $element['#value'];
-  if (!empty(trim($value))) {
-    webform_workflow_get_users($value, $user_errors);
-    if (!empty($user_errors)) {
-      form_error($element, t('Invalid username or email: %user', array('%user' => implode(', ', $user_errors))));
-    }
-  }
-}
-
-/**
- * Get user uids or emails from form entry text.
- *
- * Sets $user_errors for any invalid users
- * Returns an array of valid uid (numeric) or emails (string)
- */
-function webform_workflow_get_users($notify_users_text, &$user_errors = NULL) {
-  $notify_users_text = trim($notify_users_text);
-  $users = preg_split('/[\s;,]+/', $notify_users_text);
-  $valid_users = array();
-  $user_errors = array();
-  foreach ($users as $user_text) {
-    if (valid_email_address($user_text)) {
-      $valid_users[] = $user_text;
-    }
-    elseif ($user = user_load_by_name($user_text)) {
-      $valid_users[] = $user->uid;
-    }
-    else {
-      $user_errors[] = $user_text;
-    }
-  }
-  return $valid_users;
 }

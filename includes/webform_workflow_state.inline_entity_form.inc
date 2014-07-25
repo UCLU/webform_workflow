@@ -22,6 +22,8 @@ class WebformWorkflowStateInlineEntityFormController extends EntityInlineEntityF
    * Overrides EntityInlineEntityFormController::entityForm().
    */
   public function entityForm($entity_form, &$form_state) {
+    $entity_form = parent::entityForm($entity_form, $form_state);
+
     $entity = $entity_form['#entity'];
     if (!isset($entity->nid)) {
       $entity->nid = $form_state['node']->nid;

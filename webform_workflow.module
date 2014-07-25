@@ -4,7 +4,7 @@
  * A simple workflow module for webforms.
  */
 
-define('WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER', 'WWOS');
+define('WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER', 'wwos');
 
 /**
  * Implements hook_entity_info().
@@ -21,7 +21,7 @@ function webform_workflow_entity_info() {
     'base table' => 'webform_workflow_states',
     'entity keys' => array(
       'id' => 'wsid',
-      'label' => 'label'
+      'label' => 'label',
     ),
     'view callback' => 'entity_metadata_view_single',
     'static cache' => TRUE,
@@ -44,6 +44,7 @@ function webform_workflow_entity_info() {
       'id' => 'sid',
       'label' => 'sid',
     ),
+    'fieldable' => FALSE,
     'module' => 'webform_workflow',
   );
 
@@ -128,6 +129,8 @@ function webform_workflow_state_load($wsid) {
  * Implements hook_menu().
  */
 function webform_workflow_menu() {
+  $items = array();
+
   $items['node/%webform_menu/webform/workflow'] = array(
     'title' => 'Workflow',
     'page callback' => 'drupal_get_form',
@@ -199,27 +202,6 @@ function webform_workflow_log_access($node, $submission = NULL, $account = NULL)
     && webform_results_access($node)
     && !$submission->is_draft
     && webform_submission_access($node, $submission, 'view');
-}
-
-/**
- * For webform API see: http://drupalcontrib.org/api/drupal/contributions%21webform%21webform.api.php/7
- */
-
-/**
- * Get form entry text from array of user uids or emails.
- */
-function webform_workflow_get_user_text($notify_users) {
-  $users = array();
-  foreach ($notify_users as $u) {
-    if (is_numeric($u)) {
-      $user = user_load($u);
-      $users[] = $user->name;
-    }
-    else {
-      $users[] = $u;
-    }
-  }
-  return implode("\n", $users);
 }
 
 /**
@@ -548,18 +530,46 @@ function webform_workflow_state_delete($wsid) {
 }
 
 /**
+ * Get a list of e-mail address to notify when the submission changes state.
+ *
+ * @param object $submission
+ *   The webform submission.
+ *
+ * @return array
+ *   An array of email addresses.
+ */
+function webform_workflow_state_get_notify_addresses($submission) {
+  $cache = drupal_static('webform_workflow_state_notify_addresses', array());
+  if (isset($cache[$submission->sid])) {
+    return $cache[$submission->sid];
+  }
+  $state = $submission->webform_workflow_state;
+  $state_wrapper = entity_metadata_wrapper('webform_workflow_state', $state);
+  $addresses = array();
+  if (isset($state_wrapper->ww_state_notify_users)) {
+    foreach ($state_wrapper->ww_state_notify_users as $account_wrapper) {
+      $addresses = $account_wrapper->mail->value();
+    }
+  }
+  if (!empty($state_wrapper->ww_state_notify_os)) {
+    $submitter = user_load($submission->uid);
+    if ($submitter && !in_array($submitter->mail, $addresses)) {
+      $addresses[] = $submitter->mail;
+    }
+  }
+  drupal_alter('webform_workflow_state_notify_addresses', $addresses, $submission);
+  $cache[$submission->sid] = $addresses;
+  return $addresses;
+}
+
+/**
  * Notify users of state transition by email.
  */
 function webform_workflow_notify_users($submission) {
-  $state = $submission->webform_workflow_state;
-  $notify_emails = webform_workflow_get_user_emails($state->data['notify_users']);
-
+  $notify_emails = webform_workflow_state_get_notify_addresses($submission);
   if (!$notify_emails) {
     return;
   }
-
-  global $user;
-  $email_from = $user->mail;
 
   $node = node_load($submission->nid);
   $email_templates = webform_workflow_load($node)->data['emails'];
@@ -575,25 +585,8 @@ function webform_workflow_notify_users($submission) {
   );
 
   foreach ($notify_emails as $email) {
-    drupal_mail('webform_workflow', 'transition', $email, LANGUAGE_NONE, $params, $email_from);
+    drupal_mail('webform_workflow', 'transition', $email, LANGUAGE_NONE, $params);
   }
-}
-
-/**
- * Get array of emails from array of user uids or emails.
- */
-function webform_workflow_get_user_emails($notify_users) {
-  $emails = array();
-  foreach ($notify_users as $u) {
-    if (is_numeric($u)) {
-      $user = user_load($u);
-      $emails[] = $user->mail;
-    }
-    elseif (valid_email_address($u)) {
-      $emails[] = $u;
-    }
-  }
-  return $emails;
 }
 
 /**
