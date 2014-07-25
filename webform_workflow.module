@@ -558,7 +558,6 @@ function webform_workflow_write_submission_state($submission) {
     db_merge('webform_workflow_submissions')
       ->key(array('sid' => $submission->sid))
       ->fields(array(
-        'nid' => $submission->nid,
         'wsid' => $submission->webform_workflow_state->wsid,
       ))
       ->execute();
