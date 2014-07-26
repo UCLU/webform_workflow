@@ -579,8 +579,8 @@ function webform_workflow_state_delete($wsid) {
  * @return array
  *   An array of email addresses.
  */
-function webform_workflow_state_get_notify_addresses($submission) {
-  $cache = drupal_static('webform_workflow_state_notify_addresses', array());
+function webform_workflow_get_notify_addresses($submission) {
+  $cache = drupal_static('webform_workflow_notify_addresses', array());
   $state = $submission->webform_workflow_state;
   $cache_key = $submission->sid . ':' . $state->wsid;
   if (isset($cache[$cache_key])) {
@@ -588,18 +588,18 @@ function webform_workflow_state_get_notify_addresses($submission) {
   }
   $state_wrapper = entity_metadata_wrapper('webform_workflow_state', $state);
   $addresses = array();
-  if (isset($state_wrapper->ww_state_notify_users)) {
+  if (!empty($state_wrapper->ww_state_notify_users)) {
     foreach ($state_wrapper->ww_state_notify_users as $account_wrapper) {
       $addresses[] = $account_wrapper->mail->value();
     }
   }
-  if (!empty($state_wrapper->ww_state_notify_os)) {
+  if (isset($state_wrapper->ww_state_notify_os) && $state_wrapper->ww_state_notify_os->value()) {
     $submitter = user_load($submission->uid);
     if ($submitter && !in_array($submitter->mail, $addresses)) {
       $addresses[] = $submitter->mail;
     }
   }
-  drupal_alter('webform_workflow_state_notify_addresses', $addresses, $submission);
+  drupal_alter('webform_workflow_notify_addresses', $addresses, $submission, $state);
   $cache[$cache_key] = $addresses;
   return $addresses;
 }
@@ -612,7 +612,7 @@ function webform_workflow_notify_users($submission, $transition = NULL) {
     return;
   }
 
-  $notify_emails = webform_workflow_state_get_notify_addresses($submission);
+  $notify_emails = webform_workflow_get_notify_addresses($submission);
   if (!$notify_emails) {
     return;
   }
