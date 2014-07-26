@@ -18,14 +18,16 @@ function _webform_workflow_field_bases() {
     'active' => 1,
     'cardinality' => -1,
     'deleted' => 0,
-    'entity_types' => array('node'),
+    'entity_types' => array(
+      0 => 'node',
+    ),
     'field_name' => 'webform_workflow_states',
     'foreign keys' => array(
-      'webform_workflow_states' => array(
+      'webform_workflow_state' => array(
         'columns' => array(
           'target_id' => 'wsid',
         ),
-        'table' => 'webform_workflow_states',
+        'table' => 'webform_workflow_state',
       ),
     ),
     'indexes' => array(
@@ -44,7 +46,9 @@ function _webform_workflow_field_bases() {
           ),
         ),
         'sort' => array(
-          'type' => 'none',
+          'direction' => 'ASC',
+          'property' => 'label',
+          'type' => 'property',
         ),
         'target_bundles' => array(),
       ),

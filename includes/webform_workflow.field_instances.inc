@@ -17,7 +17,7 @@ function _webform_workflow_node_field_instances() {
   $field_instances['node-webform-webform_workflow_states'] = array(
     'bundle' => 'webform',
     'deleted' => 0,
-    'description' => '',
+    'description' => 'Configure the workflow states that can be assigned to this form\'s submissions.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -34,7 +34,7 @@ function _webform_workflow_node_field_instances() {
     ),
     'entity_type' => 'node',
     'field_name' => 'webform_workflow_states',
-    'label' => 'States',
+    'label' => 'Submission states',
     'required' => 0,
     'settings' => array(
       'user_register_form' => FALSE,
@@ -47,7 +47,10 @@ function _webform_workflow_node_field_instances() {
         'type_settings' => array(
           'allow_existing' => 1,
           'delete_references' => 1,
+          'label_plural' => 'states',
+          'label_singular' => 'state',
           'match_operator' => 'CONTAINS',
+          'override_labels' => 1,
         ),
       ),
       'type' => 'inline_entity_form',
@@ -57,7 +60,8 @@ function _webform_workflow_node_field_instances() {
 
   // Translatables
   // Included for use with string extractors like potx.
-  t('States');
+  t('Configure the workflow states that can be assigned to this form\'s submissions.');
+  t('Submission states');
 
   return $field_instances;
 }

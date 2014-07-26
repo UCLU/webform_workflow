@@ -13,7 +13,7 @@ class webform_workflow_views_handler_field_state extends views_handler_field {
   public function init(&$view, &$options) {
     parent::init($view, $options);
     $this->additional_fields['color'] = array(
-      'table' => 'webform_workflow_states',
+      'table' => 'webform_workflow_state',
       'field' => 'color',
     );
   }

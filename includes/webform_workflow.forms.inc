@@ -24,11 +24,35 @@ function webform_workflow_config_form($form, &$form_state, $node) {
   );
   field_attach_form('node', $node, $form['states'], $form_state, NULL, array('field_name' => 'webform_workflow_states'));
 
-  $form['require_log'] = array(
+  $form['settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('State settings'),
+    '#collapsible' => TRUE,
+  );
+  $form['settings']['require_log'] = array(
     '#type' => 'checkbox',
     '#title' => t('Require a log message'),
     '#description' => t('Set whether users must enter a log message whenever they change the state of a submission.'),
-    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['require_log']),
+    '#default_value' => isset($node->webform_workflow) && isset($node->webform_workflow->data['require_log']) ? $node->webform_workflow->data['require_log'] : 1,
+  );
+  $form['settings']['new_gets_first_state'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Set new submissions to the first state'),
+    '#description' => t('Enable this to automatically assign the first workflow state to new submissions.'),
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['new_gets_first_state']),
+  );
+  $form['settings']['new_triggers_notification'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Notify users when setting the state of new submissions'),
+    '#description' => t('This is not recommended, because the <a href="@settings">Webform E-mails</a> settings already allow you to send messages for new submissions.', array(
+      '@settings' => url('node/' . $node->nid . '/webform/emails'),
+    )),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="new_gets_first_state"]' => array('checked' => TRUE),
+      ),
+    ),
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['new_triggers_notification']),
   );
 
   $emails = isset($node->webform_workflow) ? $node->webform_workflow->data['emails'] : webform_workflow_get_default_email();
@@ -37,7 +61,6 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#type' => 'fieldset',
     '#title' => t('State transition notification e-mails'),
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
     '#tree' => TRUE,
   );
   $form['emails']['subject'] = array(
@@ -93,6 +116,7 @@ function webform_workflow_config_form_submit($form, &$form_state) {
   $data_array = array(
     'emails' => $form_state['values']['emails'],
     'require_log' => $form_state['values']['require_log'],
+    'new_gets_first_state' => $form_state['values']['new_gets_first_state'],
   );
 
   db_merge('webform_workflow')
@@ -164,7 +188,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#markup' => theme('webform_workflow_state', array('state' => $state)),
   );
 
-  $log = db_select('webform_workflow_log', 'wwl')
+  $log = db_select('webform_workflow_transition', 'wwl')
     ->fields('wwl')
     ->condition('sid', $submission->sid)
     ->orderBy('id', 'DESC')
@@ -172,15 +196,18 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     ->execute()
     ->fetch();
   if ($log) {
-    $account = $log->uid ? user_load($log->uid) : FALSE;
     $log_old_state = $log->old_state_wsid ? webform_workflow_state_load($log->old_state_wsid) : NULL;
     $log_new_state = $log->new_state_wsid ? webform_workflow_state_load($log->new_state_wsid) : NULL;
-    $log_string = t('@time: %old &rarr; %new (changed by !user)', array(
+    $log_string = t('@time: %old &rarr; %new', array(
       '@time' => format_date($log->timestamp, 'short'),
-      '!user' => theme('username', array('account' => $account)),
       '%old' => $log_old_state ? $log_old_state->label : t('[None]'),
       '%new' => $log_new_state ? $log_new_state->label : t('[None]'),
     ));
+    if ($log->uid) {
+      $log_string .= ' ' . t('(changed by !user)', array(
+        '!user' => theme('username', array('account' => user_load($log->uid))),
+      ));
+    }
     if ($log->message) {
       $log_string .= '<blockquote class="webform-workflow-log-message">'
         . check_plain($log->message) . '</blockquote>';
@@ -255,5 +282,5 @@ function webform_workflow_submission_state_form_submit($form, &$form_state){
   $submission = $form_state['submission'];
   $new_state = webform_workflow_state_load($form_state['values']['new_state']);
   $message = $form_state['values']['message'];
-  webform_workflow_transition($submission, $new_state, $message);
+  webform_workflow_transition($submission, $new_state, $message, $GLOBALS['user'], TRUE, TRUE);
 }

@@ -98,8 +98,10 @@ function webform_workflow_tokens($type, $tokens, array $data = array(), array $o
           break;
 
         case 'user':
-          $replacement = format_username($transition['account']);
-          $replacements[$original] = $sanitize ? check_plain($replacement) : $replacement;
+          if (!empty($transition['account'])) {
+            $replacement = format_username($transition['account']);
+            $replacements[$original] = $sanitize ? check_plain($replacement) : $replacement;
+          }
           break;
 
         case 'timestamp':

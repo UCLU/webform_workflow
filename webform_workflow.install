@@ -8,7 +8,7 @@
  * Implements hook_schema().
  */
 function webform_workflow_schema() {
-  $schema['webform_workflow_states'] = array(
+  $schema['webform_workflow_state'] = array(
     'fields' => array(
       'wsid' => array(
         'description' => 'The primary key for the workflow state.',
@@ -56,7 +56,7 @@ function webform_workflow_schema() {
         'not null' => TRUE,
       ),
       'wsid' => array(
-        'description' => 'The {webform_workflow_states}.wsid of the state this submission is in.',
+        'description' => 'The {webform_workflow_state}.wsid of the state this submission is in.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -87,10 +87,10 @@ function webform_workflow_schema() {
     'primary key' => array('nid'),
   );
 
-  $schema['webform_workflow_log'] = array(
+  $schema['webform_workflow_transition'] = array(
     'fields' => array(
       'id' => array(
-        'description' => 'The primary key for the log message.',
+        'description' => 'The primary key for the transition.',
         'type' => 'serial',
         'not null' => TRUE,
       ),
@@ -106,37 +106,44 @@ function webform_workflow_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'uid' => array(
-        'description' => 'The {user}.uid this change was made by.',
+      'timestamp' => array(
+        'description' => 'The timestamp of the transition.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'old_state_wsid' => array(
-        'description' => 'The {webform_workflow_states}.wsid of the origin state.',
+      'new_state_wsid' => array(
+        'description' => 'The {webform_workflow_state}.wsid of the new submission state.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => FALSE,
       ),
-      'new_state_wsid' => array(
-        'description' => 'The {webform_workflow_states}.wsid of the destination state.',
+      'old_state_wsid' => array(
+        'description' => 'The {webform_workflow_state}.wsid of the previous submission state.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid this transition was made by (if applicable).',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => FALSE,
       ),
       'message' => array(
         'description' => 'A log message.',
-        'type' => 'text',
-      ),
-      'timestamp' => array(
-        'description' => 'The timestamp of the log.',
-        'type' => 'int',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
       ),
     ),
     'primary key' => array('id'),
     'indexes' => array(
       'submission' => array('nid', 'sid'),
       'timestamp' => array('timestamp'),
+      'uid' => array('uid'),
+      'new_state_wsid' => array('new_state_wsid'),
+      'old_state_wsid' => array('old_state_wsid'),
     ),
   );
 

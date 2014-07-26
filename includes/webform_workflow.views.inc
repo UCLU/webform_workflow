@@ -10,7 +10,7 @@
 function webform_workflow_views_data() {
   $data = array();
 
-  $data['webform_workflow_log']['table'] = array(
+  $data['webform_workflow_transition']['table'] = array(
     'group' => t('Webform Workflow Log'),
     'base' => array(
       'title' => t('Webform Workflow Log'),
@@ -25,7 +25,7 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['id'] = array(
+  $data['webform_workflow_transition']['id'] = array(
     'title' => t('ID'),
     'help' => t('The primary key for this log message.'),
     'sort' => array(
@@ -33,7 +33,7 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['nid'] = array(
+  $data['webform_workflow_transition']['nid'] = array(
     'title' => t('Node'),
     'help' => t('The webform node this submission was generated from.'),
     'relationship' => array(
@@ -44,7 +44,7 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['sid'] = array(
+  $data['webform_workflow_transition']['sid'] = array(
     'title' => t('Submission'),
     'help' => t('The webform submission undergoing the state change.'),
     'relationship' => array(
@@ -55,7 +55,7 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['uid'] = array(
+  $data['webform_workflow_transition']['uid'] = array(
     'title' => t('User'),
     'help' => t('The user who made the state change.'),
     'relationship' => array(
@@ -66,7 +66,7 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['timestamp'] = array(
+  $data['webform_workflow_transition']['timestamp'] = array(
     'title' => t('Date changed'),
     'help' => t('The date and time of the state change.'),
     'field' => array(
@@ -81,11 +81,11 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['old_state_wsid'] = array(
+  $data['webform_workflow_transition']['old_state_wsid'] = array(
     'title' => t('Previous state'),
     'help' => t('The previous state of the submission.'),
     'relationship' => array(
-      'base' => 'webform_workflow_states',
+      'base' => 'webform_workflow_state',
       'field' => 'old_state_wsid',
       'left_field' => 'wsid',
       'handler' => 'views_handler_relationship',
@@ -93,11 +93,11 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['new_state_wsid'] = array(
+  $data['webform_workflow_transition']['new_state_wsid'] = array(
     'title' => t('New state'),
     'help' => t('The new state of the submission.'),
     'relationship' => array(
-      'base' => 'webform_workflow_states',
+      'base' => 'webform_workflow_state',
       'field' => 'new_state_wsid',
       'left_field' => 'wsid',
       'handler' => 'views_handler_relationship',
@@ -105,7 +105,7 @@ function webform_workflow_views_data() {
     ),
   );
 
-  $data['webform_workflow_log']['message'] = array(
+  $data['webform_workflow_transition']['message'] = array(
     'title' => t('Log message'),
     'help' => t('The log message associated with this state change.'),
     'field' => array(
@@ -132,7 +132,7 @@ function webform_workflow_views_data_alter(&$data) {
       'field' => 'sid',
     ),
   );
-  $data['webform_workflow_states']['table']['join'] = array(
+  $data['webform_workflow_state']['table']['join'] = array(
     'webform_submissions' => array(
       'left_field' => 'wsid',
       'field' => 'wsid',
@@ -141,12 +141,12 @@ function webform_workflow_views_data_alter(&$data) {
   );
 
   // Alter the field and filter handlers for state labels.
-  if (isset($data['webform_workflow_states'])) {
-    $data['webform_workflow_states']['label']['field']['handler'] = 'webform_workflow_views_handler_field_state';
+  if (isset($data['webform_workflow_state'])) {
+    $data['webform_workflow_state']['label']['field']['handler'] = 'webform_workflow_views_handler_field_state';
   }
 
   // Add a filter for a drop-down list of states.
-  $data['webform_workflow_states']['state_select'] = array(
+  $data['webform_workflow_state']['state_select'] = array(
     'title' => t('State filter'),
     'help' => t('Use this to provide an exposed filter with a drop-down list of states.'),
     'filter' => array(
