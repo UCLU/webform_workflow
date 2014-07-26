@@ -4,6 +4,7 @@ core = 7.x
 package = Webform
 
 dependencies[] = entity
+dependencies[] = entity_token
 dependencies[] = entityreference
 dependencies[] = inline_entity_form
 dependencies[] = webform (>= 7.x-4.x)

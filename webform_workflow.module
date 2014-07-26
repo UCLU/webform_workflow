@@ -285,16 +285,22 @@ function webform_workflow_transition($submission, $new_state, $message = NULL) {
     $current_label = $current_state->label;
     $new_label = $new_state->label;
     $submission->webform_workflow_state = $new_state;
-    $submission->webform_workflow_state_previous = $current_state;
     webform_workflow_write_submission_state($submission);
-    webform_workflow_log_transition($submission, $current_state, $new_state, $message);
+    webform_workflow_log_transition($submission, $current_state, $new_state, $GLOBALS['user'], REQUEST_TIME, $message);
     drupal_set_message(t("Transitioned submission @sid from %current_state to %new_state.", array(
       '@sid' => $submission->sid,
       '%current_state' => $current_label,
       '%new_state' => $new_label,
     )));
 
-    webform_workflow_notify_users($submission);
+    $transition = array(
+      'account' => $GLOBALS['user'],
+      'message' => $message,
+      'previous_state' => $current_state,
+      'new_state' => $new_state,
+      'timestamp' => REQUEST_TIME,
+    );
+    webform_workflow_notify_users($submission, $transition);
 
     if (module_exists('rules')) {
       $node = node_load($submission->nid);
@@ -319,20 +325,22 @@ function webform_workflow_transition($submission, $new_state, $message = NULL) {
  *   The old state.
  * @param object $to
  *   The new state.
+ * @param object $account
+ *   The user account object for the user who made the change.
+ * @param int $timestamp
+ *   The UNIX timestamp for when the change was made.
  * @param string $message
  *   A log message.
  */
-function webform_workflow_log_transition($submission, $from, $to, $message = NULL) {
-  global $user;
-
+function webform_workflow_log_transition($submission, $from, $to, $account, $timestamp, $message = NULL) {
   $record = array(
     'nid' => $submission->nid,
     'sid' => $submission->sid,
-    'uid' => $user->uid,
+    'uid' => $account->uid,
     'old_state_wsid' => $from->wsid,
     'new_state_wsid' => $to->wsid,
     'message' => $message,
-    'timestamp' => REQUEST_TIME,
+    'timestamp' => $timestamp,
   );
 
   drupal_write_record('webform_workflow_log', $record);
@@ -485,8 +493,14 @@ function webform_workflow_node_load($nodes, $types) {
  */
 function webform_workflow_get_default_email() {
   return array(
-    'subject' => t('The form [node:title] has changed state'),
-    'body' => "Webform: [node:title]\n[submission:url]",
+    'subject' => 'The submission #[submission:sid] for the form [node:title] has changed state to [submission:state]',
+    'body' => "Form: [node:title] - [node:url]\n"
+      . "Submission: #[submission:sid] - [submission:url]\n"
+      . "State: [submission:state]\n"
+      . "Previous state: [webform-workflow-transition:previous-state]\n"
+      . "Changed by: [webform-workflow-transition:user]\n"
+      . "Change time: [webform-workflow-transition:timestamp]\n"
+      . "Log message: [webform-workflow-transition:message]",
   );
 }
 
@@ -567,10 +581,11 @@ function webform_workflow_state_delete($wsid) {
  */
 function webform_workflow_state_get_notify_addresses($submission) {
   $cache = drupal_static('webform_workflow_state_notify_addresses', array());
-  if (isset($cache[$submission->sid])) {
-    return $cache[$submission->sid];
-  }
   $state = $submission->webform_workflow_state;
+  $cache_key = $submission->sid . ':' . $state->wsid;
+  if (isset($cache[$cache_key])) {
+    return $cache[$cache_key];
+  }
   $state_wrapper = entity_metadata_wrapper('webform_workflow_state', $state);
   $addresses = array();
   if (isset($state_wrapper->ww_state_notify_users)) {
@@ -585,14 +600,14 @@ function webform_workflow_state_get_notify_addresses($submission) {
     }
   }
   drupal_alter('webform_workflow_state_notify_addresses', $addresses, $submission);
-  $cache[$submission->sid] = $addresses;
+  $cache[$cache_key] = $addresses;
   return $addresses;
 }
 
 /**
  * Notify users of a state transition by email.
  */
-function webform_workflow_notify_users($submission) {
+function webform_workflow_notify_users($submission, $transition = NULL) {
   if (empty($submission->webform_workflow_state)) {
     return;
   }
@@ -605,7 +620,14 @@ function webform_workflow_notify_users($submission) {
   $node = node_load($submission->nid);
   $email_templates = $node->webform_workflow->data['emails'];
 
-  $token_data = array('node' => $node, 'webform-submission' => $submission);
+  $token_data = array(
+    'node' => $node,
+    'webform-submission' => $submission,
+  );
+  if ($transition) {
+    $token_data += array('webform-workflow-transition' => $transition);
+  }
+
   $token_options = array('clear' => TRUE, 'sanitize' => FALSE);
   $params = array(
     'subject' => token_replace($email_templates['subject'], $token_data, $token_options),

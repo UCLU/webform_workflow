@@ -56,6 +56,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
       'node',
       'submission',
       'webform_workflow_state',
+      'webform-workflow-transition',
     ))),
   );
 
