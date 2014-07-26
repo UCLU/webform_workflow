@@ -11,9 +11,8 @@
 function webform_workflow_rules_event_info() {
   $items = array(
     'webform_workflow_transition' => array(
-      'label' => t('After webform transitions to a new workflow state'),
-      // @TODO: Complete help text.
-      'help' => t('Help text for this rules event - TBC'),
+      'label' => t('After a webform submission changes state'),
+      'help' => t('Act after a webform submission transitions to a new workflow state.'),
       'group' => t('Webform'),
       'variables' => array(
         'webform' => array(

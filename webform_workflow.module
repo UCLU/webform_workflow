@@ -273,26 +273,22 @@ function webform_workflow_webform_submission_load(&$submissions) {
  * @param string $message
  */
 function webform_workflow_transition($submission, $new_state, $message = NULL) {
-
   $current_state = $submission->webform_workflow_state;
 
   if ($submission->is_draft) {
-    drupal_set_message(t('Submission @sid is a draft, so it cannot have a workflow state.', array(
+    drupal_set_message(t('Submission #@sid is a draft, so it cannot have a workflow state.', array(
       '@sid' => $submission->sid,
     )), 'warning');
   }
   elseif ($current_state->wsid != $new_state->wsid) {
-    $current_label = $current_state->label;
-    $new_label = $new_state->label;
+    // Set the new state of the submission.
     $submission->webform_workflow_state = $new_state;
     webform_workflow_write_submission_state($submission);
-    webform_workflow_log_transition($submission, $current_state, $new_state, $GLOBALS['user'], REQUEST_TIME, $message);
-    drupal_set_message(t("Transitioned submission @sid from %current_state to %new_state.", array(
-      '@sid' => $submission->sid,
-      '%current_state' => $current_label,
-      '%new_state' => $new_label,
-    )));
 
+    // Log information about the transition.
+    webform_workflow_log_transition($submission, $current_state, $new_state, $GLOBALS['user'], REQUEST_TIME, $message);
+
+    // Notify users about the transition.
     $transition = array(
       'account' => $GLOBALS['user'],
       'message' => $message,
@@ -300,20 +296,33 @@ function webform_workflow_transition($submission, $new_state, $message = NULL) {
       'new_state' => $new_state,
       'timestamp' => REQUEST_TIME,
     );
-    webform_workflow_notify_users($submission, $transition);
+    $users_notified = webform_workflow_notify_users($submission, $transition);
 
+    // Display a message about the transition.
+    $current_label = $current_state->label;
+    $new_label = $new_state->label;
+    $notice = t("Transitioned submission #@sid from %current_state to %new_state.", array(
+      '@sid' => $submission->sid,
+      '%current_state' => $current_label,
+      '%new_state' => $new_label,
+    ));
+    if ($users_notified) {
+      $users_notified_items = array();
+      foreach ($users_notified as $account) {
+        $users_notified_items[] = check_plain(format_username($account));
+      }
+      $notice .= '<br />' . t('The following user(s) have been notified by e-mail: !users', array(
+        '!users' => theme('item_list', array('items' => $users_notified_items)),
+      ));
+    }
+    drupal_set_message($notice, 'status', FALSE);
+
+    // Invoke the Rules event 'After a webform submission changes state'.
     if (module_exists('rules')) {
       $node = node_load($submission->nid);
       rules_invoke_event('webform_workflow_transition', $node, $current_state, $new_state);
     }
   }
-  else {
-    drupal_set_message(t('Submission @sid is already in the state %state.', array(
-      '@sid' => $submission->sid,
-      '%state' => $new_state->label,
-    )), 'warning');
-  }
-
 }
 
 /**
@@ -571,50 +580,75 @@ function webform_workflow_state_delete($wsid) {
 }
 
 /**
- * Get a list of e-mail address to notify when the submission changes state.
+ * Get a list of user accounts to notify when the submission changes state.
  *
  * @param object $submission
  *   The webform submission.
  *
  * @return array
- *   An array of email addresses.
+ *   An array of user accounts, keyed by UID. The anonymous user will never be
+ *   included in this list.
  */
-function webform_workflow_get_notify_addresses($submission) {
-  $cache = drupal_static('webform_workflow_notify_addresses', array());
+function webform_workflow_get_notify_users($submission) {
+  $cache = drupal_static(__FUNCTION__, array());
   $state = $submission->webform_workflow_state;
   $cache_key = $submission->sid . ':' . $state->wsid;
   if (isset($cache[$cache_key])) {
     return $cache[$cache_key];
   }
   $state_wrapper = entity_metadata_wrapper('webform_workflow_state', $state);
-  $addresses = array();
+  $uids = array();
+
+  // Add any users configured to be notified in the entity reference field
+  // 'ww_state_notify_users'.
   if (!empty($state_wrapper->ww_state_notify_users)) {
     foreach ($state_wrapper->ww_state_notify_users as $account_wrapper) {
-      $addresses[] = $account_wrapper->mail->value();
+      $uid = $account_wrapper->uid->value();
+      if ($uid) {
+        $uids[$uid] = $uid;
+      }
     }
   }
-  if (isset($state_wrapper->ww_state_notify_os) && $state_wrapper->ww_state_notify_os->value()) {
-    $submitter = user_load($submission->uid);
-    if ($submitter && !in_array($submitter->mail, $addresses)) {
-      $addresses[] = $submitter->mail;
-    }
+
+  // Add the original submitter, depending on the Boolean field
+  // ww_state_notify_os.
+  if ($submission->uid && isset($state_wrapper->ww_state_notify_os) && $state_wrapper->ww_state_notify_os->value()) {
+    $uids[$submission->uid] = $submission->uid;
   }
-  drupal_alter('webform_workflow_notify_addresses', $addresses, $submission, $state);
-  $cache[$cache_key] = $addresses;
-  return $addresses;
+
+  // Allow other modules to alter the list of users.
+  drupal_alter('webform_workflow_notify_users', $uids, $submission, $state);
+
+  $cache[$cache_key] = $uids;
+  return user_load_multiple($uids);
 }
 
 /**
- * Notify users of a state transition by email.
+ * Notify users of a state transition by e-mail.
+ *
+ * @param object $submission
+ *   The webform submission entity that has undergone the state transition.
+ * @param array $transition
+ *   Optional: information about the transition, including the keys 'account',
+ *   'new_state', 'previous_state', 'timestamp', and 'message'.
+ *
+ * @return array|FALSE
+ *   An array of the user accounts who have been notified, or FALSE if no-one
+ *   has been notified.
  */
 function webform_workflow_notify_users($submission, $transition = NULL) {
   if (empty($submission->webform_workflow_state)) {
-    return;
+    return FALSE;
   }
 
-  $notify_emails = webform_workflow_get_notify_addresses($submission);
-  if (!$notify_emails) {
-    return;
+  $notify_users = webform_workflow_get_notify_users($submission);
+  if (!$notify_users) {
+    return FALSE;
+  }
+
+  $notify_emails = array();
+  foreach ($notify_users as $account) {
+    $notify_emails[] = $account->mail;
   }
 
   $node = node_load($submission->nid);
@@ -635,6 +669,7 @@ function webform_workflow_notify_users($submission, $transition = NULL) {
   );
 
   drupal_mail('webform_workflow', 'state_transition', implode(',', $notify_emails), LANGUAGE_NONE, $params);
+  return $notify_users;
 }
 
 /**
