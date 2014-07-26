@@ -28,6 +28,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#type' => 'fieldset',
     '#title' => t('State settings'),
     '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   $form['settings']['require_log'] = array(
     '#type' => 'checkbox',
@@ -61,6 +62,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#type' => 'fieldset',
     '#title' => t('State transition notification e-mails'),
     '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
     '#tree' => TRUE,
   );
   $form['emails']['subject'] = array(

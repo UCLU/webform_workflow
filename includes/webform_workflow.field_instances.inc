@@ -84,7 +84,7 @@ function _webform_workflow_state_field_instances() {
       ),
     ),
     'deleted' => 0,
-    'description' => 'Notify the original submitter, when the submission is changed to this state.',
+    'description' => 'Notify the original submitter when a submission is changed to this state.',
     'display' => array(
       'default' => array(
         'label' => 'above',
@@ -108,7 +108,7 @@ function _webform_workflow_state_field_instances() {
         'display_label' => 1,
       ),
       'type' => 'options_onoff',
-      'weight' => 2,
+      'weight' => 4,
     ),
   );
 
@@ -145,14 +145,14 @@ function _webform_workflow_state_field_instances() {
         'size' => 60,
       ),
       'type' => 'entityreference_autocomplete',
-      'weight' => 1,
+      'weight' => 3,
     ),
   );
 
   // Translatables
   // Included for use with string extractors like potx.
   t('Notify the original submitter');
-  t('Notify the original submitter, when the submission is changed to this state.');
+  t('Notify the original submitter when a submission is changed to this state.');
   t('Specify which users should be notified when a submission is changed to this state.');
   t('Users to notify');
 

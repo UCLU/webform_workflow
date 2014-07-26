@@ -929,3 +929,25 @@ function webform_workflow_state_color_options_list() {
     'yellow' => t('Yellow'),
   );
 }
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function webform_workflow_field_extra_fields() {
+  $extra = array();
+  $extra['webform_workflow_state']['webform_workflow_state']['form'] = array(
+    'label' => array(
+      'label' => t('Name'),
+      'weight' => 0,
+    ),
+    'color' => array(
+      'label' => t('Color'),
+      'weight' => 1,
+    ),
+    'permissions' => array(
+      'label' => t('Permissions'),
+      'weight' => 2,
+    ),
+  );
+  return $extra;
+}

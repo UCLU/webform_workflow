@@ -15,9 +15,9 @@ function webform_workflow_state_form($form, &$form_state, $state = NULL) {
 
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow_state.forms');
 
-  webform_workflow_state_form_attach($form, $form_state, $state);
-
   field_attach_form('webform_workflow_state', $state, $form, $form_state);
+
+  webform_workflow_state_form_attach($form, $form_state, $state);
 
   $form['buttons'] = array('#type' => 'actions');
   $form['buttons']['submit'] = array(
@@ -59,6 +59,11 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#default_value' => $state->color,
     '#options' => webform_workflow_state_color_options_list(),
     '#attributes' => array('class' => array('webform-workflow-state-color-list')),
+    '#attached' => array(
+      'js' => array(
+        drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js',
+      ),
+    ),
   );
 
   $form['data'] = array(
@@ -69,6 +74,8 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     '#title' => t('Permissions'),
     '#tree' => TRUE,
     '#attributes' => array('class' => array('webform-workflow-state-permissions')),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   $drupal_roles = user_roles(TRUE);
   $drupal_roles[WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER] = 'original submitter';
@@ -84,9 +91,6 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
       '#default_value' => $state->data['permissions'][$op],
     );
   }
-
-  $form['#attached']['js'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.js';
-  $form['#attached']['css'][] = drupal_get_path('module', 'webform_workflow') . '/includes/webform_workflow.css';
 }
 
 /**
