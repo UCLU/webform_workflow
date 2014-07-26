@@ -590,22 +590,17 @@ function webform_workflow_is_enabled($node) {
 /**
  * Get all states attached to a webform.
  *
- * @param int $nid
- *   The node id of the webform.
+ * @param object $node
+ *   The webform node.
  *
  * @return array
  *   An array of states.
  */
 function webform_workflow_get_available_states($node) {
-  $states = array();
-  $wrapper = entity_metadata_wrapper('node', $node);
-  if (empty($wrapper->webform_workflow_states)) {
+  if (empty($node->webform_workflow_states)) {
     return array();
   }
-  foreach ($wrapper->webform_workflow_states as $key => $state_wrapper) {
-    $states[$key] = $state_wrapper->value();
-  }
-  return $states;
+  return entity_metadata_wrapper('node', $node)->webform_workflow_states->value();
 }
 
 /**
