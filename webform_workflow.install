@@ -34,9 +34,21 @@ function webform_workflow_schema() {
         'length' => '255',
         'not null' => FALSE,
       ),
-      'data' => array(
-        'description' => 'Any extra data attached to the state, e.g. permissions.',
+      'permissions' => array(
+        'description' => 'Permissions for various operations: a serialized associative array.',
         'type' => 'blob',
+        'serialize' => TRUE,
+        'not null' => FALSE,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp for when the state was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp for when the state was most recently changed.',
+        'type' => 'int',
         'not null' => FALSE,
       ),
     ),
@@ -44,6 +56,7 @@ function webform_workflow_schema() {
     'indexes' => array(
       'label' => array('label'),
       'uid' => array('uid'),
+      'date' => array('created', 'changed'),
     ),
   );
 

@@ -63,7 +63,7 @@ function webform_workflow_entity_info() {
  * Access callback for a workflow state.
  *
  * @param string $op
- *   The operation to perform. Usually 'view', 'create', 'update'. Unused.
+ *   The operation to perform. Usually 'view', 'create', 'update', or 'delete'.
  * @param object $state
  *   The state object.
  * @param object $account
@@ -257,14 +257,22 @@ function webform_workflow_webform_submission_render_alter(&$renderable) {
 
   $node = $renderable['#node'];
   $submission = $renderable['#submission'];
-  if (!webform_workflow_is_enabled($node) || $submission->is_draft || !webform_results_access($node)) {
+  if (!webform_workflow_is_enabled($node) || $submission->is_draft) {
     return;
   }
 
-  $state = $submission->webform_workflow_state;
-  module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.forms');
-  $renderable['workflow'] = drupal_get_form('webform_workflow_submission_state_form', $submission);
-  $renderable['workflow']['#weight'] = -1;
+  global $user;
+  $is_submitter = ($user->uid && $user->uid == $submission->uid)
+    || isset($_SESSION['webform_submission'][$submission->sid]);
+
+  $form_access = webform_results_access($node)
+    || ($is_submitter && !empty($node->webform_workflow->data['os_view_state']));
+
+  if ($form_access) {
+    module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.forms');
+    $renderable['workflow'] = drupal_get_form('webform_workflow_submission_state_form', $submission);
+    $renderable['workflow']['#weight'] = -1;
+  }
 }
 
 /**
@@ -403,13 +411,27 @@ function webform_workflow_transition($submission, $new_state, $message = NULL, $
     ));
     // Add information to the message about which users have been notified.
     if ($users_notified) {
-      $users_notified_items = array();
-      foreach ($users_notified as $account) {
-        $users_notified_items[] = check_plain(format_username($account));
+      if (count($users_notified) == 1) {
+        $account_notified = reset($users_notified);
+        $notice .= ' ' . t('The user !user was notified by e-mail.', array(
+          '!user' => drupal_placeholder(check_plain(format_username($account_notified)))
+            . ($account_notified->uid == $submission->uid ? ' ' . t('(the original submitter)') : ''),
+        ));
       }
-      $notice .= '<br />' . t('The following user(s) have been notified by e-mail: !users', array(
-        '!users' => theme('item_list', array('items' => $users_notified_items)),
-      ));
+      else {
+        $items = array();
+        foreach ($users_notified as $account) {
+          $item = check_plain(format_username($account));
+          if ($account->uid == $submission->uid) {
+            $item .= ' ' . t('(the original submitter)');
+          }
+          $items[] = $item;
+        }
+        natcasesort($items);
+        $notice .= ' ' . t('The following users were notified by e-mail: !list', array(
+          '!list' => theme('item_list', array('items' => $items)),
+        ));
+      }
     }
     drupal_set_message($notice, 'status', FALSE);
   }
@@ -497,39 +519,71 @@ function webform_workflow_entity_delete($entity, $type) {
 }
 
 /**
+ * Check whether an account has permission for a workflow state action.
+ *
+ * @param string $op
+ *   An operation: 'view', 'edit', 'to', or 'from'.
+ * @param object $node
+ *   The Webform node.
+ * @param object $submission
+ *   The Webform submission to check access for, if applicable.
+ * @param object $account
+ *   The user account object (optional: defaults to the current user).
+ *
+ * @return bool
+ *   Whether access should be granted.
+ */
+function webform_workflow_state_check_access($op, $state, $node, $submission = NULL, $account = NULL) {
+  $account = $account ? $account : $GLOBALS['user'];
+
+  $rids = array_keys($account->roles);
+
+  // Test whether the $account is the original author of the submission.
+  if ($submission) {
+    $is_submitter = ($account->uid && $account->uid == $submission->uid)
+      || ($account->uid == $GLOBALS['user']->uid && isset($_SESSION['webform_submission'][$submission->sid]));
+    if ($is_submitter) {
+      $rids[] = WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER;
+    }
+  }
+
+  if (isset($state->permissions[$op]) && array_intersect($rids, $state->permissions[$op])) {
+    return TRUE;
+  }
+
+  // Always grant access for changing 'from' the null state ('None').
+  if ($op == 'from' && !$state->wsid && $state->label == t('None')) {
+    return TRUE;
+  }
+
+  // For changing states ('to', or 'from'), always allow access if the user is
+  // allowed to edit the webform itself.
+  if (($op == 'to' || $op == 'from') && node_access('update', $node, $account)) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
  * Implements hook_webform_submission_access().
  *
- * Put our access check into the webform.
+ * N.B. this hook can only ever grant additional access. It cannot deny grants
+ * already supplied by Webform (or other modules).
  */
 function webform_workflow_webform_submission_access($node, $submission, $op, $account) {
-  if (webform_workflow_is_enabled($node) && $submission && isset($submission->webform_workflow_state)) {
-    $state = $submission->webform_workflow_state;
-    if (empty($state->data['permissions'][$op])) {
-      return FALSE;
-    }
-
-    $roles = array_keys($account->roles);
-
-    // If we are the original author, add to our role list to flag this.
-    if ($submission->uid == $account->uid) {
-      $roles[] = WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER;
-    }
-
-    foreach ($roles as $rid) {
-      if (in_array($rid, $state->data['permissions'][$op])) {
-        return TRUE;
-      }
-    }
+  if (!isset($submission->webform_workflow_state)) {
     return FALSE;
   }
+  $state = $submission->webform_workflow_state;
+  return webform_workflow_state_check_access($op, $state, $node, $submission, $account);
 }
 
 /**
  * Implements hook_node_load().
  */
 function webform_workflow_node_load($nodes, $types) {
-  $webform_types = webform_node_types();
-  if (count(array_intersect($types, $webform_types)) == 0) {
+  if (count(array_intersect($types, webform_node_types())) == 0) {
     return;
   }
 
@@ -810,17 +864,12 @@ function webform_workflow_change_submission_state_form($context) {
     drupal_set_message(t('No states found'), 'warning', FALSE);
     return array();
   }
-  global $user;
-  $is_admin = node_access('update', $node, $user);
   $state_options = array();
   $state_colors = array();
   foreach ($states as $state) {
-    if (array_intersect(array_keys($user->roles), $state->data['permissions']['to'])
-      || $is_admin) {
-      $state_options[$state->wsid] = $state->label;
-      if ($state->color) {
-        $state_colors['state-' . $state->wsid] = $state->color;
-      }
+    $state_options[$state->wsid] = $state->label;
+    if ($state->color) {
+      $state_colors['state-' . $state->wsid] = $state->color;
     }
   }
   if (!$state_options) {
@@ -882,15 +931,25 @@ function webform_workflow_change_submission_state($submission, $context) {
   $submission = webform_get_submission($submission->nid, $submission->sid);
 
   $node = node_load($submission->nid);
-  $is_admin = node_access('update', $node);
 
   $current_state = $submission->webform_workflow_state;
-  $transition_from_current = $is_admin || array_intersect(array_keys($user->roles), $current_state->data['permissions']['from']);
-  if (!$transition_from_current) {
+  if (!webform_workflow_state_check_access('from', $current_state, $node, $submission)) {
+    drupal_set_message(t('You do not have permission to change the state of submission #@sid', array(
+      '@sid' => $submission->sid,
+    )));
     return;
   }
 
-  webform_workflow_transition($submission, $context['new_state'], $context['message'], $GLOBALS['user'], TRUE, TRUE);
+  $new_state = $context['new_state'];
+  if (!webform_workflow_state_check_access('to', $new_state, $node, $submission)) {
+    drupal_set_message(t('You do not have permission to change submission #@sid to state %state', array(
+      '@sid' => $submission->sid,
+      '%state' => $new_state->label,
+    )));
+    return;
+  }
+
+  webform_workflow_transition($submission, $new_state, $context['message'], $GLOBALS['user'], TRUE, TRUE);
 }
 
 /**

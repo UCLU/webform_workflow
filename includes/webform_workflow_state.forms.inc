@@ -66,12 +66,10 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
     ),
   );
 
-  $form['data'] = array(
-    '#tree' => TRUE,
-  );
-  $form['data']['permissions'] = array(
+  $form['permissions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Permissions'),
+    '#description' => t('Use permissions to grant additional access permissions to the specified user roles. Note: you can grant additional access using these permissions, but you cannot deny access that would otherwise be granted.'),
     '#tree' => TRUE,
     '#attributes' => array('class' => array('webform-workflow-state-permissions')),
     '#collapsible' => TRUE,
@@ -86,9 +84,9 @@ function webform_workflow_state_form_attach(&$form, &$form_state, $state) {
   );
 
   foreach ($ops as $op => $label) {
-    $form['data']['permissions'][$op] = $role_checkboxes + array(
+    $form['permissions'][$op] = $role_checkboxes + array(
       '#title' => $label,
-      '#default_value' => $state->data['permissions'][$op],
+      '#default_value' => $state->permissions[$op],
     );
   }
 }

@@ -39,6 +39,49 @@ function webform_workflow_entity_property_info() {
       'required' => FALSE,
       'options list' => 'webform_workflow_state_color_options_list',
     ),
+    'permissions' => array(
+      'label' => t('Permissions'),
+      'description' => t('Permissions for the state'),
+      'schema field' => 'permissions',
+      'required' => FALSE,
+      'type' => 'struct',
+      'property info' => array(
+        'view' => array(
+          'label' => t('View'),
+          'description' => t('Roles with permission to view the submission in this state'),
+          'type' => 'list<role>',
+        ),
+        'edit' => array(
+          'label' => t('Edit'),
+          'description' => t('Roles with permission to edit the submission in this state'),
+          'type' => 'list<role>',
+        ),
+        'from' => array(
+          'label' => t('Change from'),
+          'description' => t('Roles with permission to change a submission from this state'),
+          'type' => 'list<role>',
+        ),
+        'to' => array(
+          'label' => t('Change to'),
+          'description' => t('Roles with permission to change a submission to this state'),
+          'type' => 'list<role>',
+        ),
+      ),
+    ),
+    'created' => array(
+      'label' => t('Created date'),
+      'description' => t('The date when the state was created'),
+      'type' => 'date',
+      'schema field' => 'created',
+      'setter callback' => 'entity_property_verbatim_set',
+    ),
+    'changed' => array(
+      'label' => t('Last modified date'),
+      'description' => t('The date when the state was last updated'),
+      'type' => 'date',
+      'schema field' => 'changed',
+      'setter callback' => 'entity_property_verbatim_set',
+    ),
   );
   $info['webform_workflow_submission']['properties'] = array(
     'sid' => array(

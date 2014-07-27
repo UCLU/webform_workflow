@@ -15,26 +15,27 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
       'uid' => NULL,
       'label' => NULL,
       'color' => NULL,
-      'data' => $this->getDataDefaults(),
+      'permissions' => array(),
+      'created' => NULL,
+      'changed' => NULL,
     );
     // Overwrite default values with supplied values.
     $values = array_merge($default_values, $values);
+    $values['permissions'] += $this->getPermissionsDefaults();
     return parent::create($values);
   }
 
   /**
-   * Get the defaults for the $state->data array.
+   * Get the defaults for the $state->permissions array.
    *
    * @return array
    */
-  protected function getDataDefaults() {
+  protected function getPermissionsDefaults() {
     return array(
-      'permissions' => array(
-        'view' => array(WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER),
-        'edit' => array(),
-        'from' => array(),
-        'to' => array(),
-      ),
+      'view' => array(),
+      'edit' => array(),
+      'from' => array(),
+      'to' => array(),
     );
   }
 
@@ -42,25 +43,23 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
    * @{inheritdoc}
    */
   public function load($ids = array(), $conditions = array()) {
-    $entities = parent::load($ids, $conditions);
-    $data_defaults = $this->getDataDefaults();
-    foreach ($entities as $state) {
-      if (is_string($state->data)) {
-        $state->data = (array) unserialize($state->data);
-      }
-      $state->data = array_merge_recursive($data_defaults, $state->data);
+    $states = parent::load($ids, $conditions);
+    $permissions_defaults = $this->getPermissionsDefaults();
+    foreach ($states as $state) {
+      $state->permissions += $permissions_defaults;
     }
-    return $entities;
+    return $states;
   }
 
   /**
    * @{inheritdoc}
    */
-  public function save($entity, DatabaseTransaction $transaction = NULL) {
-    if (is_array($entity->data)) {
-      $entity->data = serialize($entity->data);
+  public function save($state, DatabaseTransaction $transaction = NULL) {
+    if (!isset($state->created)) {
+      $state->created = REQUEST_TIME;
     }
-    return parent::save($entity, $transaction);
+    $state->changed = REQUEST_TIME;
+    return parent::save($state, $transaction);
   }
 
 }

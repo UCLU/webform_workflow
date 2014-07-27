@@ -30,12 +30,20 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
+
   $form['settings']['require_log'] = array(
     '#type' => 'checkbox',
     '#title' => t('Require a log message'),
     '#description' => t('Set whether users must enter a log message whenever they change the state of a submission.'),
-    '#default_value' => isset($node->webform_workflow) && isset($node->webform_workflow->data['require_log']) ? $node->webform_workflow->data['require_log'] : 1,
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['require_log']),
   );
+
+  $form['settings']['os_view_state'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("Always allow the submitter to view the submission's state"),
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['os_view_state']),
+  );
+
   $form['settings']['new_gets_first_state'] = array(
     '#type' => 'checkbox',
     '#title' => t('Set new submissions to the first state'),
@@ -118,6 +126,7 @@ function webform_workflow_config_form_submit($form, &$form_state) {
   $data_array = array(
     'emails' => $form_state['values']['emails'],
     'require_log' => $form_state['values']['require_log'],
+    'os_view_state' => $form_state['values']['os_view_state'],
     'new_gets_first_state' => $form_state['values']['new_gets_first_state'],
   );
 
@@ -141,41 +150,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
 
   $node = node_load($submission->nid);
-  $is_admin = node_access('update', $node);
-
   $state = $submission->webform_workflow_state;
-  $transition_from_current = $is_admin || array_intersect(array_keys($user->roles), $state->data['permissions']['from']);
-  if (!$transition_from_current) {
-    return;
-  }
-
-  $new_state_options = array();
-  $seen_current = FALSE;
-  $available_states = webform_workflow_get_available_states($node);
-  $group = ($state->wsid) && count($available_states) > 1;
-  $new_state_colors = array();
-  foreach ($available_states as $new_state) {
-    if ($new_state->wsid == $state->wsid) {
-      $seen_current = TRUE;
-      continue;
-    }
-    if (array_intersect(array_keys($user->roles), $new_state->data['permissions']['to'])
-        || $is_admin) {
-      // Group the state options into 'Earlier' and 'Later'. This assumes that
-      // the Entity API has provided the available states correctly sorted (this
-      // does appear to work with Inline Entity Form).
-      if ($group) {
-        $key = $seen_current ? t('Later states') : t('Earlier states');
-        $new_state_options[$key][$new_state->wsid] = $new_state->label;
-      }
-      else {
-        $new_state_options[$new_state->wsid] = $new_state->label;
-      }
-      if ($new_state->color) {
-        $new_state_colors['state-' . $new_state->wsid] = $new_state->color;
-      }
-    }
-  }
 
   $form['#attributes']['class'] = array('webform-workflow-submission-state-form');
 
@@ -189,6 +164,42 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#title' => t('Current state'),
     '#markup' => theme('webform_workflow_state', array('state' => $state)),
   );
+
+  if (!webform_workflow_state_check_access('from', $state, $node, $submission)) {
+    return $form;
+  }
+
+  $new_state_options = array();
+  $seen_current = FALSE;
+  $available_states = webform_workflow_get_available_states($node);
+  $group = ($state->wsid) && count($available_states) > 1;
+  $new_state_colors = array();
+  foreach ($available_states as $new_state) {
+    if ($new_state->wsid == $state->wsid) {
+      $seen_current = TRUE;
+      continue;
+    }
+    if (!webform_workflow_state_check_access('to', $new_state, $node, $submission)) {
+      continue;
+    }
+    // Group the state options into 'Earlier' and 'Later'. This assumes that
+    // the Entity API has provided the available states correctly sorted (this
+    // does appear to work with Inline Entity Form).
+    if ($group) {
+      $key = $seen_current ? t('Later states') : t('Earlier states');
+      $new_state_options[$key][$new_state->wsid] = $new_state->label;
+    }
+    else {
+      $new_state_options[$new_state->wsid] = $new_state->label;
+    }
+    if ($new_state->color) {
+      $new_state_colors['state-' . $new_state->wsid] = $new_state->color;
+    }
+  }
+
+  if (!$new_state_options) {
+    return $form;
+  }
 
   $log = db_select('webform_workflow_transition', 'wwl')
     ->fields('wwl')
@@ -220,10 +231,6 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
       '#markup' => $log_string,
       '#weight' => 50,
     );
-  }
-
-  if (!$new_state_options) {
-    return $form;
   }
 
   $form_state['submission'] = $submission;
