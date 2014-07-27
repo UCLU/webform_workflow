@@ -16,12 +16,13 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
     if (isset($this->value_options)) {
       return $this->value_options;
     }
-    $options = array(t('None'));
+    $options = array(
+      '[EMPTY]' => t('None'),
+    );
     // Fetch the states for the specified webform, if possible.
     $node = $this->getWebform();
     if ($node) {
       $states = webform_workflow_get_available_states($this->getWebform());
-      $options = array();
       foreach ($states as $state) {
         $options[$state->wsid] = $state->label;
       }
@@ -36,7 +37,6 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
       $result = $query->execute();
       if ($result && isset($result['webform_workflow_state'])) {
         $states = entity_load('webform_workflow_state', array_keys($result['webform_workflow_state']));
-        $options = array();
         foreach ($states as $state) {
           $options[$state->wsid] = $state->label;
         }
@@ -44,6 +44,21 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
     }
     $this->value_options = $options;
     return $options;
+  }
+
+  /**
+   * Overrides parent::query().
+   */
+  public function query() {
+    // If the selected option is 'None' (with the value '[EMPTY]'), change the
+    // filter operator from 'in' to 'empty'.
+    if (strpos($this->operator, 'in') !== FALSE
+      && is_array($this->value)
+      && count($this->value) == 1
+      && reset($this->value) == '[EMPTY]') {
+      $this->operator = str_replace('in', 'empty', $this->operator);
+    }
+    parent::query();
   }
 
   /**
