@@ -165,15 +165,15 @@ class WebformWorkflowPermissionsTestCase extends WebformWorkflowBaseTestCase {
     entity_save('webform_workflow_state', $state1);
     $this->drupalGet($submission_path);
     $this->assertText(t('New state'), "The submitter can now change the submission's state");
-    $this->assertText($state1->label, "The submitter can now change the submission's state to state 1");
-    $this->assertNoText($state2->label, "The submitter cannot change the submission's state to state 2");
+    $this->assertRaw('<option value="' . $state1->wsid . '"', "The submitter can now change the submission's state to state 1");
+    $this->assertNoRaw('<option value="' . $state2->wsid . '"', "The submitter cannot change the submission's state to state 2");
 
     // Set that the submitter should be allowed to change the submission state
     // to state2.
     $state2->permissions['to'][WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER] = WEBFORM_WORKFLOW_ORIGINAL_SUBMITTER;
     entity_save('webform_workflow_state', $state2);
     $this->drupalGet($submission_path);
-    $this->assertText($state2->label, "The submitter can now change the submission's state to state 2");
+    $this->assertRaw('<option value="' . $state2->wsid . '"', "The submitter can now change the submission's state to state 2");
 
     // Set the submission's state to state 1.
     webform_workflow_transition($submission, $state1);
