@@ -7,7 +7,7 @@
 abstract class WebformWorkflowBaseTestCase extends DrupalWebTestCase {
 
   /**
-   * @{inheritdoc}
+   * Overrides parent::getInfo().
    */
   public function setUp($modules = array()) {
     $combined_modules = array_merge(array(

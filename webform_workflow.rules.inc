@@ -1,15 +1,14 @@
 <?php
 /**
- * @File: Rules integration
+ * @file
+ * Rules integration for the Webform Workflow module.
  */
 
 /**
  * Implements hook_rules_event_info().
- *
- * Defines Rules events for Webform Workflow transitions.
  */
 function webform_workflow_rules_event_info() {
-  $items = array(
+  return array(
     'webform_workflow_transition' => array(
       'label' => t('After a webform submission changes state'),
       'help' => t('Act after a webform submission transitions to a new workflow state.'),
@@ -37,6 +36,4 @@ function webform_workflow_rules_event_info() {
       ),
     ),
   );
-
-  return $items;
 }

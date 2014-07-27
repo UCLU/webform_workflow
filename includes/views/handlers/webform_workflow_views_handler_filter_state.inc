@@ -22,7 +22,7 @@ class webform_workflow_views_handler_filter_state extends views_handler_filter_i
     // Fetch the states for the specified webform, if possible.
     $node = $this->getWebform();
     if ($node) {
-      $states = webform_workflow_get_available_states($this->getWebform());
+      $states = webform_workflow_get_available_states($node);
       foreach ($states as $state) {
         $options[$state->wsid] = $state->label;
       }

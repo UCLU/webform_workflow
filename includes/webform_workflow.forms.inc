@@ -85,12 +85,14 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#default_value' => $emails['body'],
     '#rows' => 5,
     '#cols' => 80,
-    '#description' => theme('webform_token_help', array('groups' => array(
-      'node',
-      'submission',
-      'webform_workflow_state',
-      'webform-workflow-transition',
-    ))),
+    '#description' => theme('webform_token_help', array(
+      'groups' => array(
+        'node',
+        'submission',
+        'webform_workflow_state',
+        'webform-workflow-transition',
+      ),
+    )),
   );
 
   $form['buttons'] = array('#type' => 'actions');
@@ -145,8 +147,6 @@ function webform_workflow_config_form_submit($form, &$form_state) {
  * Form for changing the state of an existing submission.
  */
 function webform_workflow_submission_state_form($form, &$form_state, $submission) {
-  global $user;
-
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
 
   $node = node_load($submission->nid);
@@ -275,7 +275,6 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#type' => 'submit',
     '#value' => t('Change state'),
   );
-  $destination = drupal_get_destination();
   $form['workflow']['buttons']['cancel'] = array(
     '#type' => 'link',
     '#title' => t('Cancel'),
@@ -287,7 +286,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
 /**
  * Submit callback for changing the state of an existing submission.
  */
-function webform_workflow_submission_state_form_submit($form, &$form_state){
+function webform_workflow_submission_state_form_submit($form, &$form_state) {
   $submission = $form_state['submission'];
   $new_state = webform_workflow_state_load($form_state['values']['new_state']);
   $message = $form_state['values']['message'];

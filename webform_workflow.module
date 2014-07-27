@@ -70,6 +70,7 @@ function webform_workflow_entity_info() {
  *   The user account.
  *
  * @return bool
+ *   TRUE if access is granted, FALSE otherwise.
  */
 function webform_workflow_state_access($op, $state, $account = NULL) {
   $account = $account ? $account : $GLOBALS['user'];
@@ -414,7 +415,7 @@ function webform_workflow_transition($submission, $new_state, $message = NULL, $
       if (count($users_notified) == 1) {
         $account_notified = reset($users_notified);
         $notice .= ' ' . t('The user !user was notified by e-mail.', array(
-          '!user' => drupal_placeholder(check_plain(format_username($account_notified)))
+          '!user' => drupal_placeholder(format_username($account_notified))
             . ($account_notified->uid == $submission->uid ? ' ' . t('(the original submitter)') : ''),
         ));
       }
@@ -473,7 +474,7 @@ function webform_workflow_webform_submission_delete($node, $submission) {
   // Delete all data related to the submission, even if workflow is no longer
   // enabled.
   db_delete('webform_workflow_submissions')
-    ->condition('sid', $sid)
+    ->condition('sid', $submission->sid)
     ->execute();
   db_delete('webform_workflow_transition')
     ->condition('sid', $submission->sid)
@@ -638,8 +639,10 @@ function webform_workflow_form_node_form_alter(&$form, &$form_state) {
  * Check if workflow has been enabled for the current webform.
  *
  * @param object $node
+ *   The webform node.
  *
  * @return bool
+ *   Whether workflow is enabled.
  */
 function webform_workflow_is_enabled($node) {
   return isset($node->webform_workflow) && $node->webform_workflow->workflow;
@@ -728,7 +731,7 @@ function webform_workflow_get_notify_users($submission) {
  *   An array of the user accounts who have been notified, or FALSE if no-one
  *   has been notified.
  */
-function webform_workflow_notify_users($submission, $transition = NULL) {
+function webform_workflow_notify_users($submission, array $transition = array()) {
   if (empty($submission->webform_workflow_state)) {
     return FALSE;
   }
@@ -768,11 +771,9 @@ function webform_workflow_notify_users($submission, $transition = NULL) {
  * Implements hook_mail().
  */
 function webform_workflow_mail($key, &$message, $params) {
-  switch($key) {
-    case 'state_transition':
-      $message['subject'] = $params['subject'];
-      $message['body'][] = $params['body'];
-      break;
+  if ($key == 'state_transition') {
+    $message['subject'] = $params['subject'];
+    $message['body'][] = $params['body'];
   }
 }
 
@@ -816,9 +817,7 @@ function theme_webform_workflow_state_color($variables) {
   if (empty($variables['html'])) {
     $content = check_plain($content);
   }
-  $attributes = array('class' => array(
-    'webform-workflow-state-label',
-  ));
+  $attributes = array('class' => array('webform-workflow-state-label'));
   $color_suffix = $variables['color'] ? $variables['color'] : 'none';
   $attributes['class'][] = drupal_html_class('webform-workflow-state-color-' . $color_suffix);
   $attributes['class'] = array_merge($variables['classes_array'], $attributes['class']);
@@ -925,7 +924,7 @@ function webform_workflow_change_submission_state_submit($form, &$form_state) {
  *
  * @see webform_workflow_action_info()
  */
-function webform_workflow_change_submission_state($submission, $context) {
+function webform_workflow_change_submission_state($submission, array $context) {
   // Reload the submission as a proper Webform submission object.
   module_load_include('inc', 'webform', 'includes/webform.submissions');
   $submission = webform_get_submission($submission->nid, $submission->sid);
@@ -975,6 +974,8 @@ function webform_workflow_webform_results_download_submission_information_data($
  * Get a list of possible state colors.
  *
  * @return array
+ *   An associative array of state colors. The array values are human-readable
+ *   names and the array keys are machine names.
  */
 function webform_workflow_state_color_options_list() {
   return array(

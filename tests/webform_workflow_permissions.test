@@ -7,7 +7,7 @@
 class WebformWorkflowPermissionsTestCase extends WebformWorkflowBaseTestCase {
 
   /**
-   * @{inheritdoc}
+   * Overrides parent::getInfo().
    */
   public static function getInfo() {
     return array(

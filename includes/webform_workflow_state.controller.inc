@@ -7,7 +7,7 @@
 class WebformWorkflowStateController extends EntityAPIControllerExportable {
 
   /**
-   * @{inheritdoc}
+   * Overrides parent::create().
    */
   public function create(array $values = array()) {
     $default_values = array(
@@ -40,7 +40,7 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
   }
 
   /**
-   * @{inheritdoc}
+   * Overrides parent::load().
    */
   public function load($ids = array(), $conditions = array()) {
     $states = parent::load($ids, $conditions);
@@ -52,7 +52,7 @@ class WebformWorkflowStateController extends EntityAPIControllerExportable {
   }
 
   /**
-   * @{inheritdoc}
+   * Overrides parent::save().
    */
   public function save($state, DatabaseTransaction $transaction = NULL) {
     if (!isset($state->created)) {
