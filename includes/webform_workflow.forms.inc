@@ -24,6 +24,10 @@ function webform_workflow_config_form($form, &$form_state, $node) {
   );
   field_attach_form('node', $node, $form['states'], $form_state, NULL, array('field_name' => 'webform_workflow_states'));
 
+  // Ensure that the Metatags and Redirect module's form elements are not
+  // accidentally included.
+  unset($form['states']['#metatags'], $form['states']['redirect']);
+
   $form['settings'] = array(
     '#type' => 'fieldset',
     '#title' => t('State settings'),
