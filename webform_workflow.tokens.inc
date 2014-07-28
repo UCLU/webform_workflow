@@ -52,32 +52,29 @@ function webform_workflow_token_info() {
  */
 function webform_workflow_tokens($type, $tokens, array $data = array(), array $options = array()) {
   $replacements = array();
+  $sanitize = !empty($options['sanitize']);
   if ($type == 'submission' && !empty($data['webform-submission'])) {
     $submission = $data['webform-submission'];
-    if (isset($submission->webform_workflow_state)) {
-      $state = $submission->webform_workflow_state;
-      $sanitize = !empty($options['sanitize']);
-      foreach ($tokens as $name => $original) {
-        switch ($name) {
-          case 'state':
-            $replacement = $state->label;
-            $replacements[$original] = $sanitize ? check_plain($replacement) : $replacement;
-            break;
+    $state = webform_workflow_state_load_by_submission($submission);
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        case 'state':
+          $replacement = $state->label;
+          $replacements[$original] = $sanitize ? check_plain($replacement) : $replacement;
+          break;
 
-        }
       }
+    }
 
-      if ($state_tokens = token_find_with_prefix($tokens, 'state')) {
-        $replacements += token_generate('webform_workflow_state', $state_tokens, array(
-          'webform_workflow_state' => $state,
-          'sanitize' => $sanitize,
-        ));
-      }
+    if ($state_tokens = token_find_with_prefix($tokens, 'state')) {
+      $replacements += token_generate('webform_workflow_state', $state_tokens, array(
+        'webform_workflow_state' => $state,
+        'sanitize' => $sanitize,
+      ));
     }
   }
   if ($type == 'webform-workflow-transition' && !empty($data['webform-workflow-transition'])) {
     $transition = $data['webform-workflow-transition'];
-    $sanitize = !empty($options['sanitize']);
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'previous-state':

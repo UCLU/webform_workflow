@@ -154,7 +154,7 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
 
   $node = node_load($submission->nid);
-  $state = $submission->webform_workflow_state;
+  $state = webform_workflow_state_load_by_submission($submission);
 
   $form['#attributes']['class'] = array('webform-workflow-submission-state-form');
 

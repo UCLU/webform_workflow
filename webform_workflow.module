@@ -287,31 +287,26 @@ function webform_workflow_log_access($node, $submission = NULL, $account = NULL)
 }
 
 /**
- * Implements hook_webform_submission_load().
+ * Get the state of a submission.
  *
- * Respond to the loading of Webform submissions.
+ * @param object $submission
+ *   The webform submission object.
+ * @param bool $reset
+ *   Whether to reset the static cache for this request.
+ *
+ * @return object|FALSE
+ *   The workflow state entity, or FALSE if the submission does not have a
+ *   state.
  */
-function webform_workflow_webform_submission_load(&$submissions) {
-  // Find the workflow state IDs associated with these submissions.
-  $wsids = db_select('webform_workflow_submissions', 'wws')
-    ->fields('wws', array('sid', 'wsid'))
-    ->condition('wws.sid', array_keys($submissions), 'IN')
-    ->execute()
-    ->fetchAllKeyed();
-  $states = $wsids ? entity_load('webform_workflow_state', $wsids) : array();
-  $state_none = webform_workflow_state_none();
-  foreach ($submissions as $sid => $submission) {
-    $node = node_load($submission->nid);
-    if (!webform_workflow_is_enabled($node)) {
-      continue;
-    }
-    if (isset($wsids[$sid]) && isset($states[$wsids[$sid]])) {
-      $submission->webform_workflow_state = $states[$wsids[$sid]];
-    }
-    else {
-      $submission->webform_workflow_state = $state_none;
-    }
+function webform_workflow_state_load_by_submission($submission, $reset = FALSE) {
+  if ($reset || !isset($submission->_webform_workflow_state)) {
+    $wsid = db_query('SELECT wsid FROM {webform_workflow_submissions} WHERE sid = :sid', array(
+      ':sid' => $submission->sid,
+    ))->fetchField();
+    $state = $wsid ? webform_workflow_state_load($wsid) : FALSE;
+    $submission->_webform_workflow_state = $state ? $state : webform_workflow_state_none();
   }
+  return $submission->_webform_workflow_state;
 }
 
 /**
@@ -342,12 +337,7 @@ function webform_workflow_state_none() {
  *   Whether to display a message to the current user about this transition.
  */
 function webform_workflow_transition($submission, $new_state, $message = NULL, $account = NULL, $notify = TRUE, $set_message = FALSE) {
-  if (isset($submission->webform_workflow_state)) {
-    $previous_state = $submission->webform_workflow_state;
-  }
-  else {
-    $previous_state = webform_workflow_state_none();
-  }
+  $previous_state = webform_workflow_state_load_by_submission($submission);
 
   if ($submission->is_draft) {
     drupal_set_message(t('Submission #@sid is a draft, so it cannot have a workflow state.', array(
@@ -361,7 +351,7 @@ function webform_workflow_transition($submission, $new_state, $message = NULL, $
   }
 
   // Set the new state of the submission.
-  $submission->webform_workflow_state = $new_state;
+  $submission->_webform_workflow_state = $new_state;
 
   // Write the new state to the database, along with information about the
   // transition. Use a transaction to account for possible database errors.
@@ -455,7 +445,7 @@ function webform_workflow_webform_submission_insert($node, $submission) {
   if (webform_workflow_is_enabled($node)
     && !$submission->is_draft
     && !empty($node->webform_workflow->data['new_gets_first_state'])
-    && !isset($submission->webform_workflow_state)) {
+    && !webform_workflow_state_load_by_submission($submission)->wsid) {
     $state = webform_workflow_state_get_default($node);
     if (!$state) {
       return;
@@ -573,10 +563,10 @@ function webform_workflow_state_check_access($op, $state, $node, $submission = N
  * already supplied by Webform (or other modules).
  */
 function webform_workflow_webform_submission_access($node, $submission, $op, $account) {
-  if (!isset($submission->webform_workflow_state)) {
+  if (!$submission || !$submission->sid || !webform_workflow_is_enabled($node)) {
     return FALSE;
   }
-  $state = $submission->webform_workflow_state;
+  $state = webform_workflow_state_load_by_submission($submission);
   return webform_workflow_state_check_access($op, $state, $node, $submission, $account);
 }
 
@@ -686,7 +676,10 @@ function webform_workflow_state_delete($wsid) {
  */
 function webform_workflow_get_notify_users($submission) {
   $cache = drupal_static(__FUNCTION__, array());
-  $state = $submission->webform_workflow_state;
+  $state = webform_workflow_state_load_by_submission($submission);
+  if (!$state) {
+    return array();
+  }
   $cache_key = $submission->sid . ':' . $state->wsid;
   if (isset($cache[$cache_key])) {
     return $cache[$cache_key];
@@ -732,9 +725,7 @@ function webform_workflow_get_notify_users($submission) {
  *   has been notified.
  */
 function webform_workflow_notify_users($submission, array $transition = array()) {
-  if (empty($submission->webform_workflow_state)) {
-    return FALSE;
-  }
+  $state = webform_workflow_state_load_by_submission($submission);
 
   $notify_users = webform_workflow_get_notify_users($submission);
   if (!$notify_users) {
@@ -931,8 +922,8 @@ function webform_workflow_change_submission_state($submission, array $context) {
 
   $node = node_load($submission->nid);
 
-  $current_state = $submission->webform_workflow_state;
-  if (!webform_workflow_state_check_access('from', $current_state, $node, $submission)) {
+  $current_state = webform_workflow_state_load_by_submission($submission);
+  if ($current_state && !webform_workflow_state_check_access('from', $current_state, $node, $submission)) {
     drupal_set_message(t('You do not have permission to change the state of submission #@sid', array(
       '@sid' => $submission->sid,
     )));
@@ -965,7 +956,8 @@ function webform_workflow_webform_results_download_submission_information_data($
   if ($token == 'state') {
     $node = node_load($submission->nid);
     if (webform_workflow_is_enabled($node)) {
-      return $submission->webform_workflow_state->label;
+      $state = webform_workflow_state_load_by_submission($submission);
+      return $state->label;
     }
   }
 }
