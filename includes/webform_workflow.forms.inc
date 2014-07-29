@@ -121,30 +121,32 @@ function webform_workflow_config_form_validate($form, &$form_state) {
 }
 
 /**
- * Submit handler for the workflow fieldset.
- *
- * Writes the provided workflows to the database.
+ * Form submit handler for the workflow configuration form.
  */
 function webform_workflow_config_form_submit($form, &$form_state) {
   $node = $form_state['node'];
-  field_attach_submit('node', $node, $form['states'], $form_state);
 
-  $data_array = array(
-    'emails' => $form_state['values']['emails'],
-    'require_log' => $form_state['values']['require_log'],
-    'os_view_state' => $form_state['values']['os_view_state'],
-    'new_gets_first_state' => $form_state['values']['new_gets_first_state'],
+  $fields = array(
+    'workflow' => $form_state['values']['enable_workflow'] ? 1 : 0,
+    'data' => serialize(array(
+      'emails' => $form_state['values']['emails'],
+      'require_log' => $form_state['values']['require_log'],
+      'os_view_state' => $form_state['values']['os_view_state'],
+      'new_gets_first_state' => $form_state['values']['new_gets_first_state'],
+    )),
   );
 
+  // Update the workflow configuration.
   db_merge('webform_workflow')
     ->key(array('nid' => $node->nid))
-    ->fields(array(
-      'workflow' => $form_state['values']['enable_workflow'] ? 1 : 0,
-      'data' => serialize($data_array),
-    ))
+    ->fields($fields)
     ->execute();
 
-  node_save($node);
+  // Update the workflow states (entity reference field).
+  field_attach_submit('node', $node, $form['states'], $form_state);
+  // This avoids node_save() for performance reasons.
+  field_attach_update('node', $node);
+  entity_get_controller('node')->resetCache(array($node->nid));
 }
 
 /**
