@@ -32,7 +32,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#type' => 'fieldset',
     '#title' => t('State settings'),
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
+    '#collapsed' => !isset($node->webform_workflow),
   );
 
   $form['settings']['require_log'] = array(
@@ -66,6 +66,13 @@ function webform_workflow_config_form($form, &$form_state, $node) {
       ),
     ),
     '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['new_triggers_notification']),
+  );
+
+  $form['settings']['updated_gets_first_state'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Set submissions to the first state after editing'),
+    '#description' => t('Enable this to move submissions to the first state after editing.'),
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['updated_gets_first_state']),
   );
 
   $emails = isset($node->webform_workflow) ? $node->webform_workflow->data['emails'] : webform_workflow_get_default_email();
@@ -133,6 +140,7 @@ function webform_workflow_config_form_submit($form, &$form_state) {
       'require_log' => $form_state['values']['require_log'],
       'os_view_state' => $form_state['values']['os_view_state'],
       'new_gets_first_state' => $form_state['values']['new_gets_first_state'],
+      'updated_gets_first_state' => $form_state['values']['updated_gets_first_state'],
     )),
   );
 
