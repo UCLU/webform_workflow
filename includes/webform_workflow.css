@@ -15,7 +15,8 @@
   padding: 5px 0;
 }
 .webform-workflow-submission-state-form #edit-current-state,
-.webform-workflow-submission-state-form .form-item-new-state {
+.webform-workflow-submission-state-form .form-item-new-state,
+.webform-workflow-submission-state-form .form-item-new-assignee {
   display: inline-block;
   margin-right: 20px;
   vertical-align: top;

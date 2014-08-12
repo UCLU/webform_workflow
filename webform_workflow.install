@@ -72,10 +72,20 @@ function webform_workflow_schema() {
         'description' => 'The {webform_workflow_state}.wsid of the state this submission is in.',
         'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => TRUE,
+        'not null' => FALSE,
+      ),
+      'uid' => array(
+        'description' => 'The {users}.uid of the user assigned to this submission.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
       ),
     ),
-    'primary key' => array('sid', 'wsid'),
+    'primary key' => array('sid'),
+    'indexes' => array(
+      'wsid' => array('wsid'),
+      'uid' => array('uid'),
+    ),
   );
 
   $schema['webform_workflow'] = array(
@@ -125,14 +135,26 @@ function webform_workflow_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
+      'old_state_wsid' => array(
+        'description' => 'The {webform_workflow_state}.wsid of the previous submission state.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
       'new_state_wsid' => array(
         'description' => 'The {webform_workflow_state}.wsid of the new submission state.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => FALSE,
       ),
-      'old_state_wsid' => array(
-        'description' => 'The {webform_workflow_state}.wsid of the previous submission state.',
+      'old_assigned_uid' => array(
+        'description' => 'The {users}.uid of the previous assignee.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ),
+      'new_assigned_uid' => array(
+        'description' => 'The {users}.uid of the new assignee.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => FALSE,
@@ -155,8 +177,8 @@ function webform_workflow_schema() {
       'submission' => array('nid', 'sid'),
       'timestamp' => array('timestamp'),
       'uid' => array('uid'),
-      'new_state_wsid' => array('new_state_wsid'),
-      'old_state_wsid' => array('old_state_wsid'),
+      'wsid' => array('old_state_wsid', 'new_state_wsid'),
+      'assigned' => array('old_assigned_uid', 'new_assigned_uid'),
     ),
   );
 
@@ -208,5 +230,46 @@ function webform_workflow_uninstall() {
   module_load_include('inc', 'webform_workflow', 'includes/webform_workflow.field_bases');
   foreach (array_keys(_webform_workflow_field_bases()) as $field_name) {
     field_delete_field($field_name);
+  }
+}
+
+/**
+ * Add the 'uid' field for assigning users to submissions.
+ */
+function webform_workflow_update_7001() {
+  db_drop_primary_key('webform_workflow_submissions');
+  db_add_primary_key('webform_workflow_submissions', array('sid'));
+  if (!db_index_exists('webform_workflow_submissions', 'wsid')) {
+    db_add_index('webform_workflow_submissions', 'wsid', array('wsid'));
+  }
+  if (!db_field_exists('webform_workflow_submissions', 'uid')) {
+    db_add_field('webform_workflow_submissions', 'uid', array(
+      'description' => 'The {users}.uid of the user assigned to this submission.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+    ), array('uid' => array('uid')));
+  }
+  if (!db_field_exists('webform_workflow_transition', 'old_assigned_uid')) {
+    db_add_field('webform_workflow_transition', 'old_assigned_uid', array(
+      'description' => 'The {users}.uid of the previous assignee.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+    ));
+  }
+  if (!db_field_exists('webform_workflow_transition', 'new_assigned_uid')) {
+    db_add_field('webform_workflow_transition', 'new_assigned_uid', array(
+      'description' => 'The {users}.uid of the new assignee.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+    ));
+  }
+  if (!db_index_exists('webform_workflow_transition', 'assigned')) {
+    db_add_index('webform_workflow_transition', 'assigned', array(
+      'old_assigned_uid',
+      'new_assigned_uid',
+    ));
   }
 }

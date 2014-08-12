@@ -55,7 +55,7 @@ function webform_workflow_tokens($type, $tokens, array $data = array(), array $o
   $sanitize = !empty($options['sanitize']);
   if ($type == 'submission' && !empty($data['webform-submission'])) {
     $submission = $data['webform-submission'];
-    $state = webform_workflow_state_load_by_submission($submission);
+    $state = webform_workflow_get_submission_state($submission);
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'state':

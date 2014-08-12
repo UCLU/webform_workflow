@@ -19,6 +19,18 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#default_value' => webform_workflow_is_enabled($node),
   );
 
+  $form['assignment'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable assignment'),
+    '#description' => t('Allow assigning users to submissions'),
+    '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['assignment']),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="enable_workflow"]' => array('checked' => TRUE),
+      ),
+    ),
+  );
+
   $form['states'] = array(
     '#type' => 'container',
   );
@@ -28,33 +40,33 @@ function webform_workflow_config_form($form, &$form_state, $node) {
   // accidentally included.
   unset($form['states']['#metatags'], $form['states']['redirect']);
 
-  $form['settings'] = array(
+  $form['state_settings'] = array(
     '#type' => 'fieldset',
     '#title' => t('State settings'),
     '#collapsible' => TRUE,
     '#collapsed' => !isset($node->webform_workflow),
   );
 
-  $form['settings']['require_log'] = array(
+  $form['state_settings']['require_log'] = array(
     '#type' => 'checkbox',
     '#title' => t('Require a log message'),
     '#description' => t('Set whether users must enter a log message whenever they change the state of a submission.'),
     '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['require_log']),
   );
 
-  $form['settings']['os_view_state'] = array(
+  $form['state_settings']['os_view_state'] = array(
     '#type' => 'checkbox',
     '#title' => t("Always allow the submitter to view the submission's state"),
     '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['os_view_state']),
   );
 
-  $form['settings']['new_gets_first_state'] = array(
+  $form['state_settings']['new_gets_first_state'] = array(
     '#type' => 'checkbox',
     '#title' => t('Set new submissions to the first state'),
     '#description' => t('Enable this to automatically assign the first workflow state to new submissions.'),
     '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['new_gets_first_state']),
   );
-  $form['settings']['new_triggers_notification'] = array(
+  $form['state_settings']['new_triggers_notification'] = array(
     '#type' => 'checkbox',
     '#title' => t('Notify users when setting the state of new submissions'),
     '#description' => t('This is not recommended, because the <a href="@settings">Webform E-mails</a> settings already allow you to send messages for new submissions.', array(
@@ -68,7 +80,7 @@ function webform_workflow_config_form($form, &$form_state, $node) {
     '#default_value' => isset($node->webform_workflow) && !empty($node->webform_workflow->data['new_triggers_notification']),
   );
 
-  $form['settings']['updated_gets_first_state'] = array(
+  $form['state_settings']['updated_gets_first_state'] = array(
     '#type' => 'checkbox',
     '#title' => t('Set submissions to the first state after editing'),
     '#description' => t('Enable this to move submissions to the first state after editing.'),
@@ -141,6 +153,7 @@ function webform_workflow_config_form_submit($form, &$form_state) {
       'os_view_state' => $form_state['values']['os_view_state'],
       'new_gets_first_state' => $form_state['values']['new_gets_first_state'],
       'updated_gets_first_state' => $form_state['values']['updated_gets_first_state'],
+      'assignment' => $form_state['values']['assignment'],
     )),
   );
 
@@ -158,13 +171,13 @@ function webform_workflow_config_form_submit($form, &$form_state) {
 }
 
 /**
- * Form for changing the state of an existing submission.
+ * Form for changing the workflow of an existing submission.
  */
-function webform_workflow_submission_state_form($form, &$form_state, $submission) {
+function webform_workflow_submission_form($form, &$form_state, $submission) {
   form_load_include($form_state, 'inc', 'webform_workflow', 'includes/webform_workflow.forms');
 
   $node = node_load($submission->nid);
-  $state = webform_workflow_state_load_by_submission($submission);
+  $state = webform_workflow_get_submission_state($submission);
 
   $form['#attributes']['class'] = array('webform-workflow-submission-state-form');
 
@@ -178,6 +191,15 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     '#title' => t('Current state'),
     '#markup' => theme('webform_workflow_state', array('state' => $state)),
   );
+
+  $assignee = webform_workflow_get_submission_assigned($submission);
+  if ($assignee) {
+    $form['workflow']['current_assignee'] = array(
+      '#type' => 'item',
+      '#title' => t('Current assignee'),
+      '#markup' => format_username($assignee),
+    );
+  }
 
   if (!webform_workflow_state_check_access('from', $state, $node, $submission)) {
     return $form;
@@ -269,6 +291,16 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
     );
   }
 
+  $form['workflow']['new_assignee'] = array(
+    '#title' => t('New assignee'),
+    '#type' => 'textfield',
+    '#size' => 15,
+    '#required' => TRUE,
+    '#title_display' => 'before',
+    '#autocomplete_path' => 'user/autocomplete',
+    '#weight' => 25,
+  );
+
   $new_state_trigger = array(
     ':input[name="new_state"]' => array('!value' => ''),
   );
@@ -298,11 +330,18 @@ function webform_workflow_submission_state_form($form, &$form_state, $submission
 }
 
 /**
- * Submit callback for changing the state of an existing submission.
+ * Submit callback for changing the workflow of an existing submission.
  */
-function webform_workflow_submission_state_form_submit($form, &$form_state) {
+function webform_workflow_submission_form_submit($form, &$form_state) {
   $submission = $form_state['submission'];
-  $new_state = webform_workflow_state_load($form_state['values']['new_state']);
   $message = $form_state['values']['message'];
-  webform_workflow_transition($submission, $new_state, $message, $GLOBALS['user'], TRUE, TRUE);
+  if ($form_state['values']['new_state']) {
+    $new_state = webform_workflow_state_load($form_state['values']['new_state']);
+  }
+  if ($form_state['values']['new_assignee']) {
+    $new_assignee = user_load($form_state['values']['new_assignee']);
+  }
+  if ($new_state || $new_assignee) {
+    webform_workflow_transition($submission, $new_state, $new_assignee, $message, $GLOBALS['user'], TRUE, TRUE);
+  }
 }
