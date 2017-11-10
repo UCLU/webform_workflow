@@ -15,12 +15,14 @@ function webform_workflow_submissions_list($node) {
     module_load_include('inc', 'webform', 'includes/webform.report');
     return webform_results_submissions($node, FALSE, 50);
   }
-  $view = views_get_view('webform_workflow_submissions');
+  $view = views_get_view('webform_workflow_submissions_'.$node->nid);
+  if (empty($view) || $view->disabled) {
+    $view = views_get_view('webform_workflow_submissions');
+  }
   $view->override_path = current_path();
   $view->override_url = current_path();
   return $view->preview('embed', array($node->nid));
 }
-
 /**
  * Page callback to display a workflow transition log for a submission.
  */
